@@ -1,0 +1,215 @@
+@import "tailwindcss";
+@import "@fontsource-variable/archivo/wdth.css";
+
+@theme {
+  --font-sans: "Archivo Variable", ui-sans-serif, system-ui, sans-serif;
+
+  --color-aluminum: #e8eaed;
+  --color-aluminum-deep: #dcdfe3;
+  --color-panel: #f6f7f8;
+  --color-graphite: #1c1f24;
+  --color-slate: #596070;
+  --color-line: #c9cdd3;
+  --color-felt: #2e3a34;
+  --color-felt-light: #3a4a42;
+  --color-cobalt: #2747e0;
+  --color-cobalt-deep: #1b34b0;
+  --color-ok: #17784a;
+  --color-warn: #8a5a00;
+  --color-danger: #b42318;
+}
+
+@layer base {
+  html {
+    background: var(--color-aluminum);
+    color: var(--color-graphite);
+    font-feature-settings: "tnum" 0;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    min-height: 100dvh;
+  }
+
+  ::selection {
+    background: var(--color-cobalt);
+    color: white;
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--color-cobalt);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@utility font-wide {
+  font-stretch: 125%;
+  letter-spacing: -0.01em;
+}
+
+@utility font-narrow {
+  font-stretch: 87.5%;
+}
+
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+@utility keycap {
+  border-radius: 10px;
+  background: var(--color-panel);
+  border: 1px solid var(--color-line);
+  box-shadow: 0 4px 0 0 var(--color-line);
+  transition: transform 120ms ease, box-shadow 120ms ease;
+
+  &:hover {
+    transform: translateY(1px);
+    box-shadow: 0 3px 0 0 var(--color-line);
+  }
+
+  &:active {
+    transform: translateY(4px);
+    box-shadow: 0 0 0 0 var(--color-line);
+  }
+}
+
+@utility btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 8px;
+  padding: 0.75rem 1.25rem;
+  font-weight: 600;
+  line-height: 1.25rem;
+  transition: background-color 120ms ease, color 120ms ease, border-color 120ms ease;
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+}
+
+@utility btn-primary {
+  background: var(--color-cobalt);
+  color: white;
+
+  &:hover:not(:disabled) {
+    background: var(--color-cobalt-deep);
+  }
+}
+
+@utility btn-secondary {
+  background: transparent;
+  color: var(--color-graphite);
+  border: 1px solid var(--color-graphite);
+
+  &:hover:not(:disabled) {
+    background: var(--color-graphite);
+    color: white;
+  }
+}
+
+@utility btn-quiet {
+  background: transparent;
+  color: var(--color-slate);
+
+  &:hover:not(:disabled) {
+    color: var(--color-graphite);
+    background: var(--color-aluminum-deep);
+  }
+}
+
+@utility field {
+  width: 100%;
+  border-radius: 8px;
+  border: 1px solid var(--color-line);
+  background: white;
+  padding: 0.7rem 0.85rem;
+  color: var(--color-graphite);
+
+  &::placeholder {
+    color: #7a8190;
+  }
+
+  &:focus {
+    outline: 2px solid var(--color-cobalt);
+    outline-offset: 0;
+    border-color: var(--color-cobalt);
+  }
+
+  &[aria-invalid="true"] {
+    border-color: var(--color-danger);
+  }
+}
+
+@utility prose-legal {
+  max-width: 68ch;
+  line-height: 1.7;
+
+  & h2 {
+    font-stretch: 125%;
+    font-weight: 700;
+    font-size: 1.25rem;
+    margin-top: 2.5rem;
+    margin-bottom: 0.75rem;
+  }
+
+  & h3 {
+    font-weight: 700;
+    margin-top: 1.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  & p,
+  & ul,
+  & ol {
+    margin-bottom: 1rem;
+    color: #2f343c;
+  }
+
+  & ul {
+    list-style: disc;
+    padding-left: 1.25rem;
+  }
+
+  & ol {
+    list-style: decimal;
+    padding-left: 1.25rem;
+  }
+
+  & li {
+    margin-bottom: 0.35rem;
+  }
+
+  & a {
+    color: var(--color-cobalt);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  & table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0 1.5rem;
+    font-size: 0.925rem;
+  }
+
+  & th,
+  & td {
+    text-align: left;
+    border-bottom: 1px solid var(--color-line);
+    padding: 0.6rem 0.5rem 0.6rem 0;
+    vertical-align: top;
+  }
+}
