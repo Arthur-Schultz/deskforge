@@ -121,7 +121,7 @@ Por padrão o pagamento é simulado. Para usar o Stripe em modo de teste:
    ```
    PAYMENT_PROVIDER=stripe
    STRIPE_SECRET_KEY=sk_test_...
-   STRIPE_WEBHOOK_SECRET=whsec_...   # exibido pelo stripe listen
+   STRIPE_WEBHOOK_SECRET=            # cole o valor completo exibido pelo stripe listen
    ```
 4. Pague com o cartão de teste `4242 4242 4242 4242`, qualquer data futura e qualquer CVC.
 

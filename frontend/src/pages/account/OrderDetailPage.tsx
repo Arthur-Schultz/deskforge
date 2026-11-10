@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CircleCheck } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router'
 import { FormAlert } from '../../components/Field'
 import { OrderSummary } from '../../components/OrderSummary'
@@ -24,8 +24,14 @@ export function OrderDetailPage() {
   const { data: store } = useStoreInfo()
   const queryClient = useQueryClient()
   const [confirmingCancel, setConfirmingCancel] = useState(false)
-  const [waitingSince] = useState(() => Date.now())
   const returnedFromStripe = params.get('pagamento')
+  const [confirmationLate, setConfirmationLate] = useState(false)
+
+  useEffect(() => {
+    if (returnedFromStripe !== 'sucesso') return
+    const timer = window.setTimeout(() => setConfirmationLate(true), 60_000)
+    return () => window.clearTimeout(timer)
+  }, [returnedFromStripe])
 
   const order = useQuery({
     queryKey: ['order', id],
@@ -33,7 +39,7 @@ export function OrderDetailPage() {
     refetchInterval: (query) =>
       returnedFromStripe === 'sucesso' &&
       query.state.data?.status === 'AWAITING_PAYMENT' &&
-      Date.now() - waitingSince < 60_000
+      !confirmationLate
         ? 2000
         : false,
   })
@@ -80,10 +86,21 @@ export function OrderDetailPage() {
       <p className="mt-2 text-sm text-slate">Feito em {formatDateTime(o.createdAt)}</p>
 
       {confirming ? (
-        <p role="status" className="mt-8 rounded-xl bg-[#e1e7ff] px-4 py-3 text-sm font-medium text-cobalt-deep">
-          Recebemos você de volta do Stripe. Estamos aguardando a confirmação do pagamento, o que leva alguns
-          segundos.
-        </p>
+        <div role="status" className="mt-8 rounded-xl bg-[#e1e7ff] px-4 py-3 text-sm font-medium text-cobalt-deep">
+          {confirmationLate ? (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <span>
+                A confirmação do pagamento está demorando mais que o normal. Se o pagamento foi aprovado, ele aparece
+                aqui assim que o Stripe avisar a loja.
+              </span>
+              <button type="button" className="btn btn-secondary py-2" onClick={() => order.refetch()}>
+                Verificar de novo
+              </button>
+            </div>
+          ) : (
+            'Recebemos você de volta do Stripe. Estamos aguardando a confirmação do pagamento, o que leva alguns segundos.'
+          )}
+        </div>
       ) : null}
 
       {awaiting && !confirming ? (
