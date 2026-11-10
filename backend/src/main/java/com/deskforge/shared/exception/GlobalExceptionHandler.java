@@ -4,6 +4,9 @@ import java.net.URI;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import com.deskforge.payment.PaymentProviderException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -24,6 +27,7 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 @RestControllerAdvice
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
     private static final String TYPE_BASE = "https://deskforge.dev/problems/";
 
     @ExceptionHandler(NotFoundException.class)
@@ -39,6 +43,13 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(ConflictException.class)
     public ProblemDetail handleConflict(ConflictException ex) {
         return problem(HttpStatus.CONFLICT, "conflict", "Conflito", ex.getMessage());
+    }
+
+    @ExceptionHandler(PaymentProviderException.class)
+    public ProblemDetail handlePaymentProvider(PaymentProviderException ex) {
+        log.error("Payment provider failure", ex);
+        return problem(HttpStatus.BAD_GATEWAY, "payment-provider", "Falha no pagamento",
+                ex.getMessage() + ". Tente novamente em instantes.");
     }
 
     @ExceptionHandler(OptimisticLockingFailureException.class)

@@ -1,5 +1,6 @@
 package com.deskforge.store;
 
+import com.deskforge.payment.PaymentGateway;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,14 +13,16 @@ import org.springframework.web.bind.annotation.RestController;
 public class StoreController {
 
     private final StoreProperties properties;
+    private final PaymentGateway paymentGateway;
 
-    public StoreController(StoreProperties properties) {
+    public StoreController(StoreProperties properties, PaymentGateway paymentGateway) {
         this.properties = properties;
+        this.paymentGateway = paymentGateway;
     }
 
     @GetMapping
     @Operation(summary = "Informações do fornecedor, prazos e regras de frete")
     public StoreInfoResponse info() {
-        return StoreInfoResponse.from(properties);
+        return StoreInfoResponse.from(properties, paymentGateway.provider());
     }
 }

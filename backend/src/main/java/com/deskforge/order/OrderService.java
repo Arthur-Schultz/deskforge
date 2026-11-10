@@ -26,6 +26,8 @@ import com.deskforge.store.PricingPolicy;
 import com.deskforge.store.StoreProperties;
 import com.deskforge.user.User;
 import com.deskforge.user.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -33,6 +35,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class OrderService {
+
+    private static final Logger log = LoggerFactory.getLogger(OrderService.class);
 
     private static final String DEFAULT_CANCEL_REASON = "Cancelado pelo cliente (direito de arrependimento)";
     private static final String EXPIRED_REASON = "Pagamento não confirmado dentro do prazo";
@@ -93,8 +97,30 @@ public class OrderService {
         PaymentResult result = paymentGateway.charge(order);
         if (result.approved()) {
             order.markPaid(result.reference(), now);
+        } else {
+            order.attachPaymentSession(result.reference(), result.expiresAt());
         }
         return new PaymentResponse(toResponse(order, now), result.redirectUrl());
+    }
+
+    @Transactional
+    public void confirmExternalPayment(UUID orderId, String paymentReference) {
+        Order order = orderWithItems(orderId);
+        Instant now = clock.instant();
+        if (order.confirmExternalPayment(paymentReference, now)) {
+            log.info("Payment confirmed for order {}", order.getNumber());
+        } else if (order.getStatus() == OrderStatus.CANCELED) {
+            log.warn("Payment received for canceled order {}, refunding", order.getNumber());
+            paymentGateway.refund(paymentReference, order.getNumber());
+        }
+    }
+
+    @Transactional
+    public void expireExternalPayment(UUID orderId) {
+        Order order = orderWithItems(orderId);
+        if (order.getStatus() == OrderStatus.AWAITING_PAYMENT) {
+            cancel(order, EXPIRED_REASON, clock.instant(), false);
+        }
     }
 
     @Transactional
@@ -105,7 +131,7 @@ public class OrderService {
             throw new BusinessRuleException("O prazo de " + store.withdrawalDays()
                     + " dias para desistência deste pedido terminou. Fale com o SAC para trocas e garantia.");
         }
-        cancel(order, reason == null || reason.isBlank() ? DEFAULT_CANCEL_REASON : reason.strip(), now);
+        cancel(order, reason == null || reason.isBlank() ? DEFAULT_CANCEL_REASON : reason.strip(), now, true);
         return toResponse(order, now);
     }
 
@@ -140,7 +166,7 @@ public class OrderService {
         Order order = orderWithItems(orderId);
         Instant now = clock.instant();
         if (target == OrderStatus.CANCELED) {
-            cancel(order, "Cancelado pela loja", now);
+            cancel(order, "Cancelado pela loja", now, true);
         } else {
             order.advanceTo(target, now);
         }
@@ -154,18 +180,21 @@ public class OrderService {
         for (UUID id : expired) {
             Order order = orderWithItems(id);
             if (order.isPaymentExpired(now)) {
-                cancel(order, EXPIRED_REASON, now);
+                cancel(order, EXPIRED_REASON, now, false);
             }
         }
         return expired.size();
     }
 
-    private void cancel(Order order, String reason, Instant now) {
+    private void cancel(Order order, String reason, Instant now, boolean closePendingPayment) {
+        if (closePendingPayment && order.getStatus() == OrderStatus.AWAITING_PAYMENT) {
+            paymentGateway.cancelPending(order);
+        }
         List<Long> productIds = order.getItems().stream().map(item -> item.getProduct().getId()).toList();
         products.findAllByIdForUpdate(productIds);
         boolean requiresRefund = order.cancel(reason, now);
         if (requiresRefund) {
-            paymentGateway.refund(order);
+            paymentGateway.refund(order.getPaymentReference(), order.getNumber());
         }
     }
 

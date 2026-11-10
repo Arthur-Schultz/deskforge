@@ -30,7 +30,7 @@ public class SecurityConfig {
 
     private static final String[] PUBLIC_POST = {
             "/api/auth/register", "/api/auth/login", "/api/contact",
-            "/api/privacy/requests", "/api/privacy/consents"
+            "/api/privacy/requests", "/api/privacy/consents", "/api/payments/stripe/webhook"
     };
 
     @Bean

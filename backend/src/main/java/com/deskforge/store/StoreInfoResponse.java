@@ -20,13 +20,14 @@ public record StoreInfoResponse(
         BigDecimal freeShippingThreshold,
         BigDecimal flatShippingCost,
         BigDecimal approximateTaxRate,
-        boolean demoMode) {
+        boolean demoMode,
+        String paymentProvider) {
 
-    public static StoreInfoResponse from(StoreProperties p) {
+    public static StoreInfoResponse from(StoreProperties p, String paymentProvider) {
         return new StoreInfoResponse(p.tradeName(), p.legalName(), p.cnpj(), p.address(), p.supportEmail(),
                 p.supportPhone(), p.supportHours(), p.dataProtectionOfficer(), p.dataProtectionEmail(),
                 p.privacyPolicyVersion(), p.withdrawalDays(), p.supportResponseDays(), p.dataSubjectResponseDays(),
                 p.paymentWindowMinutes(), p.freeShippingThreshold(), p.flatShippingCost(), p.approximateTaxRate(),
-                p.demoMode());
+                p.demoMode(), paymentProvider);
     }
 }

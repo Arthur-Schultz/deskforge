@@ -15,14 +15,18 @@ public class SimulatedPaymentGateway implements PaymentGateway {
     private static final Logger log = LoggerFactory.getLogger(SimulatedPaymentGateway.class);
 
     @Override
-    public PaymentResult charge(Order order) {
-        String reference = "sim_" + UUID.randomUUID().toString().replace("-", "");
-        log.info("Simulated payment approved for order {} ({})", order.getNumber(), order.getTotal());
-        return new PaymentResult(true, reference, null);
+    public String provider() {
+        return "simulated";
     }
 
     @Override
-    public void refund(Order order) {
-        log.info("Simulated refund issued for order {} ({})", order.getNumber(), order.getPaymentReference());
+    public PaymentResult charge(Order order) {
+        log.info("Simulated payment approved for order {} ({})", order.getNumber(), order.getTotal());
+        return PaymentResult.approved("sim_" + UUID.randomUUID().toString().replace("-", ""));
+    }
+
+    @Override
+    public void refund(String paymentReference, String orderNumber) {
+        log.info("Simulated refund issued for order {} ({})", orderNumber, paymentReference);
     }
 }

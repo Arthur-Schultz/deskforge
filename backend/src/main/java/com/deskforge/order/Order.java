@@ -27,6 +27,8 @@ import jakarta.persistence.Table;
 @Table(name = "orders")
 public class Order {
 
+    private static final Duration PAYMENT_GRACE = Duration.ofMinutes(2);
+
     @Id
     private UUID id;
 
@@ -120,6 +122,27 @@ public class Order {
         this.status = OrderStatus.PAID;
         this.paymentReference = paymentReference;
         this.paidAt = now;
+    }
+
+    public void attachPaymentSession(String reference, Instant sessionExpiresAt) {
+        if (status != OrderStatus.AWAITING_PAYMENT) {
+            throw new BusinessRuleException("Este pedido não está aguardando pagamento");
+        }
+        this.paymentReference = reference;
+        Instant localDeadline = sessionExpiresAt.plus(PAYMENT_GRACE);
+        if (localDeadline.isAfter(expiresAt)) {
+            this.expiresAt = localDeadline;
+        }
+    }
+
+    public boolean confirmExternalPayment(String paymentReference, Instant now) {
+        if (status != OrderStatus.AWAITING_PAYMENT) {
+            return false;
+        }
+        this.status = OrderStatus.PAID;
+        this.paymentReference = paymentReference;
+        this.paidAt = now;
+        return true;
     }
 
     public void advanceTo(OrderStatus target, Instant now) {
