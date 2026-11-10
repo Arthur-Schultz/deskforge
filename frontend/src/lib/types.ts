@@ -148,6 +148,7 @@ export interface StoreInfo {
   flatShippingCost: number
   approximateTaxRate: number
   demoMode: boolean
+  paymentProvider: 'simulated' | 'stripe'
 }
 
 export interface Protocol {

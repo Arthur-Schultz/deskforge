@@ -1,12 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { CircleCheck } from 'lucide-react'
 import { useState } from 'react'
-import { Link, useParams } from 'react-router'
+import { Link, useParams, useSearchParams } from 'react-router'
 import { FormAlert } from '../../components/Field'
 import { OrderSummary } from '../../components/OrderSummary'
 import { StatusBadge } from '../../components/StatusBadge'
 import { api } from '../../lib/api'
 import { formatDate, formatDateTime, formatPrice } from '../../lib/format'
+import { useStoreInfo } from '../../lib/queries'
 import type { Order } from '../../lib/types'
 import { NotFoundPage } from '../NotFoundPage'
 
@@ -19,10 +20,23 @@ const steps = [
 
 export function OrderDetailPage() {
   const { id } = useParams()
+  const [params] = useSearchParams()
+  const { data: store } = useStoreInfo()
   const queryClient = useQueryClient()
   const [confirmingCancel, setConfirmingCancel] = useState(false)
+  const [waitingSince] = useState(() => Date.now())
+  const returnedFromStripe = params.get('pagamento')
 
-  const order = useQuery({ queryKey: ['order', id], queryFn: () => api.get<Order>(`/api/orders/${id}`) })
+  const order = useQuery({
+    queryKey: ['order', id],
+    queryFn: () => api.get<Order>(`/api/orders/${id}`),
+    refetchInterval: (query) =>
+      returnedFromStripe === 'sucesso' &&
+      query.state.data?.status === 'AWAITING_PAYMENT' &&
+      Date.now() - waitingSince < 60_000
+        ? 2000
+        : false,
+  })
 
   const refresh = (updated: Order) => {
     queryClient.setQueryData(['order', id], updated)
@@ -50,6 +64,9 @@ export function OrderDetailPage() {
 
   const o = order.data
   const awaiting = o.status === 'AWAITING_PAYMENT'
+  const stripe = store?.paymentProvider === 'stripe'
+  const confirming = awaiting && returnedFromStripe === 'sucesso'
+  const justPaid = o.status === 'PAID' && (pay.isSuccess || returnedFromStripe === 'sucesso')
 
   return (
     <div className="mx-auto max-w-5xl px-4 pb-10 pt-10 sm:px-6">
@@ -62,25 +79,40 @@ export function OrderDetailPage() {
       </div>
       <p className="mt-2 text-sm text-slate">Feito em {formatDateTime(o.createdAt)}</p>
 
-      {awaiting ? (
+      {confirming ? (
+        <p role="status" className="mt-8 rounded-xl bg-[#e1e7ff] px-4 py-3 text-sm font-medium text-cobalt-deep">
+          Recebemos você de volta do Stripe. Estamos aguardando a confirmação do pagamento, o que leva alguns
+          segundos.
+        </p>
+      ) : null}
+
+      {awaiting && !confirming ? (
         <section aria-labelledby="pay-title" className="mt-8 rounded-2xl bg-graphite p-6 text-white sm:p-8">
           <h2 id="pay-title" className="font-wide text-xl font-bold">
-            Confirme o pagamento
+            {returnedFromStripe === 'cancelado' ? 'Pagamento não concluído' : 'Confirme o pagamento'}
           </h2>
           <p className="mt-2 max-w-xl text-sm leading-relaxed text-[#c9cdd3]">
-            Os produtos estão reservados até {formatDateTime(o.expiresAt)}. Este é um pagamento simulado: nenhum valor
-            é cobrado.
+            Os produtos estão reservados até {formatDateTime(o.expiresAt)}.{' '}
+            {stripe
+              ? 'Você vai para a página segura do Stripe. Ambiente de teste: use o cartão 4242 4242 4242 4242, qualquer data futura e qualquer CVC.'
+              : 'Este é um pagamento simulado: nenhum valor é cobrado.'}
           </p>
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <button type="button" className="btn bg-white text-graphite hover:bg-aluminum" onClick={() => pay.mutate()} disabled={pay.isPending}>
-              {pay.isPending ? 'Confirmando…' : `Pagar ${formatPrice(o.total)}`}
+              {pay.isPending
+                ? stripe
+                  ? 'Abrindo o Stripe…'
+                  : 'Confirmando…'
+                : stripe
+                  ? `Pagar ${formatPrice(o.total)} com cartão`
+                  : `Pagar ${formatPrice(o.total)}`}
             </button>
           </div>
           {pay.error ? <p role="alert" className="mt-4 text-sm text-[#ffb4ab]">{pay.error.message}</p> : null}
         </section>
       ) : null}
 
-      {o.status === 'PAID' && pay.isSuccess ? (
+      {justPaid ? (
         <p role="status" className="mt-8 flex items-center gap-2 rounded-xl bg-[#dcf3e6] px-4 py-3 text-sm font-medium text-ok">
           <CircleCheck className="size-5" aria-hidden />
           Pagamento confirmado. Agora é só aguardar o envio.

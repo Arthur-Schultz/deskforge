@@ -93,11 +93,22 @@ export function CheckoutPage() {
 
           <h2 className="font-wide mt-12 text-lg font-bold">Pagamento</h2>
           <div className="mt-4 rounded-xl border border-dashed border-line bg-panel p-5 text-sm leading-relaxed">
-            <p className="font-semibold">Pagamento simulado</p>
-            <p className="mt-1 text-slate">
-              Depois de fazer o pedido, você confirma o pagamento na próxima tela. Nenhum valor é cobrado e nenhum
-              dado de cartão é pedido. A integração com o Stripe em modo de teste entra na próxima versão.
-            </p>
+            {store?.paymentProvider === 'stripe' ? (
+              <>
+                <p className="font-semibold">Cartão de crédito pelo Stripe</p>
+                <p className="mt-1 text-slate">
+                  Depois de fazer o pedido, você paga na página segura do Stripe. Os dados do cartão não passam pela
+                  loja. Ambiente de teste: use o cartão 4242 4242 4242 4242, qualquer data futura e qualquer CVC.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="font-semibold">Pagamento simulado</p>
+                <p className="mt-1 text-slate">
+                  Depois de fazer o pedido, você confirma o pagamento na próxima tela. Nenhum valor é cobrado.
+                </p>
+              </>
+            )}
           </div>
         </section>
 
