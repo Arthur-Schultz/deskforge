@@ -6,11 +6,9 @@ const pages = [
   { to: '/termos', label: 'Termos de Serviço' },
   { to: '/privacidade', label: 'Política de Privacidade' },
   { to: '/cookies', label: 'Política de Cookies' },
-  { to: '/reembolso', label: 'Trocas, devoluções e reembolso' },
-  { to: '/lgpd', label: 'Seus dados (LGPD)' },
-  { to: '/acessibilidade', label: 'Acessibilidade' },
+  { to: '/reembolso', label: 'Trocas e devoluções' },
   { to: '/contato', label: 'Fale com o SAC' },
-  { to: '/creditos', label: 'Créditos e licenças' },
+  { to: '/acessibilidade', label: 'Acessibilidade' },
 ]
 
 export function LegalLayout({ title, intro, children }: { title: string; intro?: ReactNode; children: ReactNode }) {
@@ -40,14 +38,5 @@ export function LegalLayout({ title, intro, children }: { title: string; intro?:
         <div className="prose-legal mt-8">{children}</div>
       </article>
     </div>
-  )
-}
-
-export function DemoNotice() {
-  return (
-    <p className="rounded-lg border border-dashed border-line bg-panel px-4 py-3 text-sm">
-      Este texto faz parte de um projeto de portfólio e descreve uma empresa fictícia. Ele não substitui a orientação
-      de um advogado para uma loja real.
-    </p>
   )
 }

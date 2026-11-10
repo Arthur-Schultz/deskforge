@@ -1,6 +1,6 @@
 import { Link } from 'react-router'
 import { useStoreInfo } from '../../lib/queries'
-import { DemoNotice, LegalLayout } from './LegalLayout'
+import { LegalLayout } from './LegalLayout'
 
 export function RefundPage() {
   const { data: store } = useStoreInfo()
@@ -10,7 +10,6 @@ export function RefundPage() {
       title="Trocas, devoluções e reembolso"
       intro={`Você pode desistir de qualquer compra em até ${days} dias após receber o produto, sem precisar explicar o motivo.`}
     >
-      <DemoNotice />
       <h2>Direito de arrependimento</h2>
       <p>
         Compras pela internet podem ser canceladas em até {days} dias corridos a partir do recebimento (art. 49 do

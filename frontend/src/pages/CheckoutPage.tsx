@@ -69,7 +69,6 @@ export function CheckoutPage() {
           <h2 id="address-title" className="font-wide text-lg font-bold">
             Endereço de entrega
           </h2>
-          <p className="mt-1 text-sm text-slate">Usado só para entregar este pedido e emitir a nota fiscal.</p>
           <div className="mt-6 grid gap-5 sm:grid-cols-6">
             <Field className="sm:col-span-6" label="Nome de quem recebe" required autoComplete="name" value={address.recipientName} onChange={set('recipientName')} error={fieldError('recipientName')} />
             <Field className="sm:col-span-2" label="CEP" required inputMode="numeric" autoComplete="postal-code" placeholder="00000-000" value={address.zipCode} onChange={set('zipCode')} error={fieldError('zipCode')} />

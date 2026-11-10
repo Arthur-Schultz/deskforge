@@ -1,5 +1,5 @@
 import { Link } from 'react-router'
-import { DemoNotice, LegalLayout } from './LegalLayout'
+import { LegalLayout } from './LegalLayout'
 
 export function AccessibilityPage() {
   return (
@@ -7,7 +7,6 @@ export function AccessibilityPage() {
       title="Acessibilidade"
       intro="A loja foi construída para funcionar com teclado, leitores de tela e ampliação, seguindo as diretrizes WCAG 2.2 nível AA e a Lei Brasileira de Inclusão (Lei 13.146/2015)."
     >
-      <DemoNotice />
       <h2>O que já fizemos</h2>
       <ul>
         <li>Toda a navegação funciona pelo teclado, com foco visível e um atalho para pular direto ao conteúdo.</li>

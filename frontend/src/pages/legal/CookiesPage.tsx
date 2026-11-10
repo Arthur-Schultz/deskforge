@@ -1,5 +1,5 @@
 import { reopenConsent } from '../../lib/consent'
-import { DemoNotice, LegalLayout } from './LegalLayout'
+import { LegalLayout } from './LegalLayout'
 
 export function CookiesPage() {
   return (
@@ -7,7 +7,6 @@ export function CookiesPage() {
       title="Política de Cookies"
       intro="Quais cookies e armazenamentos locais a loja usa, para que servem e como mudar sua escolha."
     >
-      <DemoNotice />
       <h2>O que usamos</h2>
       <table>
         <thead>

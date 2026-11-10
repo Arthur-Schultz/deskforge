@@ -5,17 +5,14 @@ import { Logo } from './Logo'
 
 const help = [
   { to: '/contato', label: 'Fale com o SAC' },
-  { to: '/reembolso', label: 'Trocas, devoluções e reembolso' },
+  { to: '/reembolso', label: 'Trocas e devoluções' },
   { to: '/conta/pedidos', label: 'Meus pedidos' },
-  { to: '/acessibilidade', label: 'Acessibilidade' },
 ]
 
 const legal = [
   { to: '/termos', label: 'Termos de Serviço' },
   { to: '/privacidade', label: 'Política de Privacidade' },
-  { to: '/cookies', label: 'Política de Cookies' },
-  { to: '/lgpd', label: 'Seus dados (LGPD)' },
-  { to: '/creditos', label: 'Créditos e licenças' },
+  { to: '/acessibilidade', label: 'Acessibilidade' },
 ]
 
 export function Footer() {
@@ -54,7 +51,7 @@ export function Footer() {
         </nav>
         <nav aria-labelledby="footer-legal">
           <h2 id="footer-legal" className="font-wide text-sm font-bold text-white">
-            Transparência
+            Institucional
           </h2>
           <ul className="mt-4 space-y-2.5 text-sm">
             {legal.map((link) => (
@@ -66,7 +63,7 @@ export function Footer() {
             ))}
             <li>
               <button type="button" onClick={reopenConsent} className="text-left hover:text-white hover:underline underline-offset-4">
-                Preferências de cookies
+                Cookies
               </button>
             </li>
           </ul>
@@ -77,10 +74,6 @@ export function Footer() {
           <div className="mx-auto max-w-7xl px-4 py-6 text-xs leading-relaxed text-[#aab0ba] sm:px-6">
             <p>
               {store.legalName}, CNPJ {store.cnpj}. {store.address}.
-            </p>
-            <p className="mt-1">
-              Preços e condições válidos para compras no site. Projeto demonstrativo: nenhum produto é vendido ou
-              entregue e nenhum pagamento é processado.
             </p>
           </div>
         </div>

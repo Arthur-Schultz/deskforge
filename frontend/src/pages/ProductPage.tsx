@@ -161,7 +161,7 @@ export function ProductPage() {
               <dd className="font-medium">{p.sku}</dd>
             </div>
           </dl>
-          <p className="mt-3 text-xs text-slate">Imagem ilustrativa. Especificações de produto fictício.</p>
+          <p className="mt-3 text-xs text-slate">Imagem ilustrativa.</p>
         </section>
       </div>
 

@@ -79,9 +79,6 @@ export function RegisterPage() {
         <button type="submit" className="btn btn-primary w-full" disabled={pending}>
           {pending ? 'Criando conta…' : 'Criar conta'}
         </button>
-        <p className="text-xs leading-relaxed text-slate">
-          Pedimos só nome, e-mail e senha. O endereço é pedido apenas na hora da compra.
-        </p>
       </form>
     </div>
   )

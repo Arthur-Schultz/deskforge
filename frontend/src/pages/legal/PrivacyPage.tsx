@@ -1,6 +1,6 @@
 import { Link } from 'react-router'
 import { useStoreInfo } from '../../lib/queries'
-import { DemoNotice, LegalLayout } from './LegalLayout'
+import { LegalLayout } from './LegalLayout'
 
 export function PrivacyPage() {
   const { data: store } = useStoreInfo()
@@ -9,7 +9,6 @@ export function PrivacyPage() {
       title="Política de Privacidade"
       intro="Como a DeskForge coleta, usa, guarda e protege seus dados pessoais, de acordo com a Lei Geral de Proteção de Dados (Lei 13.709/2018)."
     >
-      <DemoNotice />
 
       <h2>Quem é responsável pelos seus dados</h2>
       <p>

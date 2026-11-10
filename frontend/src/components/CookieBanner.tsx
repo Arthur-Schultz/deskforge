@@ -43,10 +43,9 @@ export function CookieBanner() {
         Cookies nesta loja
       </h2>
       <p className="mt-2 text-sm leading-relaxed text-slate">
-        Usamos cookies essenciais para manter seu login e seu carrinho. Cookies de análise e de marketing só são
-        ativados se você permitir, e você pode mudar de ideia a qualquer momento no rodapé.{' '}
+        Usamos cookies essenciais para o login e o carrinho. Os de análise só com a sua permissão.{' '}
         <Link to="/cookies" className="text-cobalt underline underline-offset-4">
-          Ver a Política de Cookies
+          Saiba mais
         </Link>
       </p>
 

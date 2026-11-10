@@ -1,7 +1,7 @@
 import { Link } from 'react-router'
 import { useStoreInfo } from '../../lib/queries'
 import { formatPrice } from '../../lib/format'
-import { DemoNotice, LegalLayout } from './LegalLayout'
+import { LegalLayout } from './LegalLayout'
 
 export function TermsPage() {
   const { data: store } = useStoreInfo()
@@ -10,7 +10,6 @@ export function TermsPage() {
       title="Termos de Serviço"
       intro="As regras de uso da loja e das compras feitas nela, escritas de acordo com o Código de Defesa do Consumidor e o Decreto 7.962/2013."
     >
-      <DemoNotice />
 
       <h2>Quem somos</h2>
       <p>

@@ -123,12 +123,10 @@ export function HomePage() {
                 </p>
               </div>
               <div>
-                <h3 className="font-semibold text-white">Só os dados necessários</h3>
+                <h3 className="font-semibold text-white">Garantia de 90 dias</h3>
                 <p className="mt-2 text-sm leading-relaxed">
-                  Pedimos nome, e-mail e endereço de entrega. Você baixa ou apaga seus dados quando quiser.{' '}
-                  <Link to="/privacidade" className="text-white underline underline-offset-4">
-                    Política de Privacidade
-                  </Link>
+                  Se o produto apresentar defeito, a troca ou o reembolso são resolvidos pelo SAC, com protocolo e prazo
+                  de resposta.
                 </p>
               </div>
             </div>

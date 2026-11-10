@@ -1,4 +1,4 @@
-import { DemoNotice, LegalLayout } from './LegalLayout'
+import { LegalLayout } from './LegalLayout'
 
 const credits = [
   { name: 'Ilustrações de produtos e logotipo', license: 'Originais deste projeto, licença MIT' },
@@ -16,7 +16,6 @@ export function CreditsPage() {
       title="Créditos e licenças"
       intro="Nenhuma imagem, marca ou foto de terceiros é usada na loja. Abaixo estão as ferramentas abertas que tornam o projeto possível."
     >
-      <DemoNotice />
       <table>
         <thead>
           <tr>
