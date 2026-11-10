@@ -1,8 +1,8 @@
 # DeskForge
 
-E-commerce full stack de periféricos e acessórios de setup, com **Spring Boot 4 (Java 21)** e **React 19**. É um projeto de portfólio feito para resolver problemas reais de uma loja virtual: concorrência no estoque, máquina de estados de pedidos, autenticação com JWT e conformidade com a legislação brasileira (CDC, Decreto 7.962/2013, LGPD e Marco Civil da Internet).
+E-commerce full stack de periféricos e acessórios de setup, com **Spring Boot 4 (Java 21)**, **PostgreSQL** e **React 19**. Resolve os problemas reais de uma loja virtual: estoque à prova de concorrência, máquina de estados de pedidos, autenticação com JWT, banco com privilégios mínimos e conformidade com a legislação brasileira (CDC, Decreto 7.962/2013, LGPD e Marco Civil da Internet).
 
-> A loja, a empresa, os produtos e o CNPJ são fictícios. Nenhum pagamento é processado.
+> A empresa, os produtos e o CNPJ são fictícios. Nenhum pagamento é processado.
 
 ![Página inicial do DeskForge](docs/screenshots/home.png)
 
@@ -13,6 +13,7 @@ E-commerce full stack de periféricos e acessórios de setup, com **Spring Boot 
 - **Reserva com prazo.** Um job agendado cancela os pedidos não pagos em 30 minutos e libera os produtos.
 - **Direito de arrependimento (art. 49 do CDC).** O cliente cancela pela própria conta em até 7 dias após a entrega, com estorno solicitado ao gateway.
 - **Gateway de pagamento plugável.** A interface `PaymentGateway` tem hoje uma implementação simulada. O Stripe entra na v2 sem mudar o domínio.
+- **Banco com privilégios mínimos.** As migrations rodam com o usuário dono do schema, e a aplicação conecta com um usuário que só tem `SELECT`, `INSERT`, `UPDATE` e `DELETE`. Regras de negócio críticas também são garantidas por `CHECK` no próprio PostgreSQL.
 - **LGPD de verdade.** Coleta mínima, consentimento granular de cookies com registro de prova, exportação dos dados em JSON, exclusão de conta por anonimização (os pedidos ficam guardados por obrigação fiscal) e formulário de direitos do titular com protocolo e prazo.
 - **Marco Civil da Internet.** Guarda de registros de acesso (IP, data e hora) por 6 meses e expurgo automático depois desse prazo.
 - **Acessibilidade WCAG 2.2 AA.** Navegação completa por teclado, foco visível, link para pular ao conteúdo, contraste verificado, erros de formulário associados aos campos e suporte a `prefers-reduced-motion`.
@@ -28,7 +29,7 @@ E-commerce full stack de periféricos e acessórios de setup, com **Spring Boot 
 | --- | --- |
 | ![Painel admin](docs/screenshots/admin.png) | ![Política de privacidade](docs/screenshots/privacy.png) |
 
-<p align="center"><img src="docs/screenshots/mobile.png" alt="Versão mobile" width="300"></p>
+<p align="center"><img src="docs/screenshots/mobile.png" alt="Versão mobile" width="260"></p>
 
 ## Stack
 
@@ -57,12 +58,23 @@ deskforge/
 │       ├── store/               Dados do fornecedor, frete e tributos aproximados
 │       └── shared/              Erros RFC 9457 (Problem Details), paginação, configuração
 ├── frontend/                    Loja e painel (React)
-└── docker-compose.yml           PostgreSQL + API + Web
+├── infra/
+│   ├── postgres/                Script que cria o usuário restrito da aplicação
+│   └── pgadmin/                 Conexão pré-configurada do pgAdmin
+└── docker-compose.yml           PostgreSQL + API + Web (+ pgAdmin opcional)
 ```
 
 Regras de negócio ficam nas entidades (`Order`, `Product`), e os serviços orquestram transações. Todos os erros seguem o formato **Problem Details (RFC 9457)**, com mensagens em português e erros por campo.
 
 ## Como rodar
+
+Pré-requisito: Docker Desktop. Primeiro crie o arquivo de configuração a partir do modelo e troque as senhas:
+
+```bash
+cp .env.example .env
+```
+
+Para gerar o `JWT_SECRET`: `openssl rand -base64 48`. O `.env` está no `.gitignore` e nunca vai para o repositório.
 
 ### Tudo com Docker
 
@@ -80,7 +92,7 @@ docker compose up --build
 docker compose up -d db
 
 cd backend
-./mvnw spring-boot:run        # ou mvn spring-boot:run
+./mvnw spring-boot:run        # lê o ../.env automaticamente
 
 cd ../frontend
 npm install
@@ -93,6 +105,25 @@ npm run dev                   # http://localhost:5173
 | --- | --- | --- |
 | Cliente | cliente@deskforge.dev | Cliente@2026 |
 | Admin | admin@deskforge.dev | Admin@2026 |
+
+## Banco de dados
+
+| Usuário | Usado por | Permissões |
+| --- | --- | --- |
+| `POSTGRES_USER` (deskforge) | Flyway, nas migrations | Dono do schema |
+| `DATABASE_USERNAME` (deskforge_app) | API em tempo de execução | Apenas leitura e escrita de dados |
+
+O schema é versionado pelo Flyway em `backend/src/main/resources/db/migration`, e o Hibernate apenas valida o mapeamento. Além de chaves estrangeiras e `UNIQUE`, o banco garante com `CHECK` os status válidos, os valores dos pedidos (`total = subtotal + frete`), e-mails em minúsculas e preços promocionais coerentes. As colunas `updated_at` são mantidas por trigger.
+
+Para ver as tabelas no navegador, suba o pgAdmin (perfil opcional):
+
+```bash
+docker compose --profile tools up -d
+```
+
+Acesse http://localhost:5050. O servidor **DeskForge** já aparece configurado; ao abrir, informe a senha do `DATABASE_USERNAME`. Todas as portas ficam restritas a `127.0.0.1`.
+
+> O script que cria o usuário restrito só roda na primeira inicialização do volume. Se você já tinha subido o banco antes, recrie com `docker compose down -v`.
 
 ## Testes
 

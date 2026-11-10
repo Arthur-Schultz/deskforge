@@ -45,5 +45,9 @@ jobs:
     needs: [backend, frontend]
     steps:
       - uses: actions/checkout@v4
+      - name: Prepare environment
+        run: cp .env.example .env
+      - name: Validate compose file
+        run: docker compose --profile tools config --quiet
       - name: Build all services
         run: docker compose build
