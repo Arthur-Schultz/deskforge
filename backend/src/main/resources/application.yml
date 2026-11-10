@@ -1,0 +1,82 @@
+spring:
+  application:
+    name: deskforge-api
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/deskforge}
+    username: ${DATABASE_USERNAME:deskforge}
+    password: ${DATABASE_PASSWORD:deskforge}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+  mvc:
+    problemdetails:
+      enabled: true
+  jackson:
+    default-property-inclusion: non_null
+    deserialization:
+      fail-on-null-for-primitives: false
+
+server:
+  port: ${PORT:8080}
+  forward-headers-strategy: framework
+  error:
+    include-stacktrace: never
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+
+deskforge:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+  security:
+    jwt:
+      secret: ${JWT_SECRET:ZGVza2ZvcmdlLWxvY2FsLWRldmVsb3BtZW50LXNlY3JldC1jaGFuZ2UtbWUtaW4tcHJvZHVjdGlvbg==}
+      expiration: PT8H
+      issuer: deskforge-api
+  payment:
+    provider: simulated
+  jobs:
+    enabled: true
+    order-expiration-interval: PT1M
+  audit:
+    access-log-retention: P6M
+    retention-cron: "0 30 3 * * *"
+  store:
+    trade-name: DeskForge
+    legal-name: DeskForge Comércio de Periféricos Ltda. (empresa fictícia)
+    cnpj: 00.000.000/0000-00
+    address: Av. Demonstração, 2026, Sala 404, Centro, Cidade Exemplo/SP, 00000-000
+    support-email: sac@deskforge.dev
+    support-phone: (00) 0000-0000
+    support-hours: Segunda a sexta, das 9h às 18h
+    data-protection-officer: Encarregado de Dados (fictício)
+    data-protection-email: privacidade@deskforge.dev
+    privacy-policy-version: "2026-11"
+    withdrawal-days: 7
+    support-response-days: 5
+    data-subject-response-days: 15
+    payment-window-minutes: 30
+    free-shipping-threshold: 299.00
+    flat-shipping-cost: 24.90
+    approximate-tax-rate: 0.2785
+    demo-mode: true
