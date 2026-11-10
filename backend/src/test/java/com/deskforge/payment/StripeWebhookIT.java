@@ -50,7 +50,7 @@ import org.springframework.web.context.WebApplicationContext;
 })
 class StripeWebhookIT extends PostgresIntegrationTest {
 
-    static final String WEBHOOK_SECRET = "whsec_integration_test_secret";
+    static final String WEBHOOK_SECRET = "whsec_integrationTestSecret0123456789abcdef";
 
     @MockitoBean
     private PaymentGateway paymentGateway;
