@@ -12,7 +12,7 @@ E-commerce full stack de periféricos e acessórios de setup, com **Spring Boot 
 - **Máquina de estados de pedidos.** `AGUARDANDO_PAGAMENTO → PAGO → ENVIADO → ENTREGUE`, com cancelamento validado no domínio e devolução automática do estoque.
 - **Reserva com prazo.** Um job agendado cancela os pedidos não pagos em 30 minutos e libera os produtos.
 - **Direito de arrependimento (art. 49 do CDC).** O cliente cancela pela própria conta em até 7 dias após a entrega, com estorno solicitado ao gateway.
-- **Gateway de pagamento plugável.** A interface `PaymentGateway` tem hoje uma implementação simulada. O Stripe entra na v2 sem mudar o domínio.
+- **Pagamento com Stripe Checkout.** O cliente paga na página hospedada do Stripe, então dados de cartão nunca passam pela loja. A confirmação chega por webhook com assinatura verificada e é idempotente: eventos repetidos são ignorados. Se um pagamento chegar depois de o pedido expirar, ele é estornado automaticamente. A interface `PaymentGateway` também tem uma implementação simulada, usada por padrão.
 - **Banco com privilégios mínimos.** As migrations rodam com o usuário dono do schema, e a aplicação conecta com um usuário que só tem `SELECT`, `INSERT`, `UPDATE` e `DELETE`. Regras de negócio críticas também são garantidas por `CHECK` no próprio PostgreSQL.
 - **LGPD de verdade.** Coleta mínima, consentimento granular de cookies com registro de prova, exportação dos dados em JSON, exclusão de conta por anonimização (os pedidos ficam guardados por obrigação fiscal) e formulário de direitos do titular com protocolo e prazo.
 - **Marco Civil da Internet.** Guarda de registros de acesso (IP, data e hora) por 6 meses e expurgo automático depois desse prazo.
@@ -35,7 +35,7 @@ E-commerce full stack de periféricos e acessórios de setup, com **Spring Boot 
 
 | Camada | Tecnologias |
 | --- | --- |
-| API | Java 21, Spring Boot 4.1, Spring Security 7, Spring Data JPA (Hibernate 7), Bean Validation, Flyway, springdoc-openapi, JJWT |
+| API | Java 21, Spring Boot 4.1, Spring Security 7, Spring Data JPA (Hibernate 7), Bean Validation, Flyway, springdoc-openapi, JJWT, Stripe Java |
 | Banco | PostgreSQL 17 |
 | Web | React 19, TypeScript, Vite, React Router, TanStack Query, Tailwind CSS 4 |
 | Testes | JUnit 5, AssertJ, Spring Security Test, Testcontainers |
@@ -50,7 +50,7 @@ deskforge/
 │       ├── auth/                JWT, filtro de autenticação, regras de acesso
 │       ├── catalog/             Produtos, categorias, busca com Specifications
 │       ├── order/               Checkout, máquina de estados, expiração de pedidos
-│       ├── payment/             PaymentGateway e implementação simulada
+│       ├── payment/             PaymentGateway, Stripe Checkout, webhooks e modo simulado
 │       ├── privacy/             Consentimento, direitos do titular, exportação e anonimização
 │       ├── support/             SAC com protocolo e prazo de resposta
 │       ├── audit/               Registros de acesso (Marco Civil) e retenção
@@ -106,6 +106,26 @@ npm run dev                   # http://localhost:5173
 | Cliente | cliente@deskforge.dev | Cliente@2026 |
 | Admin | admin@deskforge.dev | Admin@2026 |
 
+## Pagamentos com Stripe (opcional)
+
+Por padrão o pagamento é simulado. Para usar o Stripe em modo de teste:
+
+1. Crie uma conta em stripe.com e copie a chave secreta de teste (`sk_test_...`) em *Desenvolvedores → Chaves de API*.
+2. Instale o [Stripe CLI](https://docs.stripe.com/stripe-cli) e encaminhe os webhooks para a API:
+   ```bash
+   stripe login
+   stripe listen --forward-to localhost:8080/api/payments/stripe/webhook
+   ```
+3. No `.env`, preencha:
+   ```
+   PAYMENT_PROVIDER=stripe
+   STRIPE_SECRET_KEY=sk_test_...
+   STRIPE_WEBHOOK_SECRET=whsec_...   # exibido pelo stripe listen
+   ```
+4. Pague com o cartão de teste `4242 4242 4242 4242`, qualquer data futura e qualquer CVC.
+
+A API se recusa a iniciar com uma chave `sk_live_`, para que o projeto nunca cobre de verdade.
+
 ## Banco de dados
 
 | Usuário | Usado por | Permissões |
@@ -132,7 +152,7 @@ cd backend
 mvn verify
 ```
 
-São 15 testes unitários (domínio de pedidos, regras de frete, JWT) e 8 de integração com PostgreSQL real via Testcontainers, cobrindo segurança, compra concorrente e devolução de estoque. É preciso ter o Docker rodando. O GitHub Actions executa os testes da API e o lint e o build do front a cada push.
+São 15 testes unitários (domínio de pedidos, regras de frete, JWT) e 12 de integração com PostgreSQL real via Testcontainers, cobrindo segurança, compra concorrente, devolução de estoque e webhooks do Stripe (assinatura, idempotência, expiração e estorno automático). É preciso ter o Docker rodando. O GitHub Actions executa os testes da API e o lint e o build do front a cada push.
 
 ## Mapa de conformidade
 
@@ -154,7 +174,7 @@ São 15 testes unitários (domínio de pedidos, regras de frete, JWT) e 8 de int
 ## Roadmap
 
 - [x] **v1:** catálogo, carrinho, checkout com controle de concorrência, JWT, painel admin, páginas legais e LGPD
-- [ ] **v2:** Stripe Checkout em modo de teste com webhooks idempotentes
+- [x] **v2:** Stripe Checkout em modo de teste com webhooks idempotentes
 - [ ] **v3:** e-mails transacionais (confirmação, recuperação de senha) assíncronos com templates Thymeleaf
 - [ ] **v4:** refresh token em cookie HttpOnly e limitação de tentativas de login
 - [ ] **v5:** deploy público e observabilidade
