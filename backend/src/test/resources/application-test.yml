@@ -1,3 +1,11 @@
+spring:
+  flyway:
+    user: test
+    password: test
+
 deskforge:
   jobs:
     enabled: false
+  security:
+    jwt:
+      secret: dGVzdC1zZWNyZXQtdGhhdC1pcy1sb25nLWVub3VnaC1mb3ItaHMyNTYtc2lnbmluZw==

@@ -22,6 +22,7 @@ public class JwtService {
 
     private static final String EMAIL_CLAIM = "email";
     private static final String ROLE_CLAIM = "role";
+    private static final int MIN_SECRET_BYTES = 32;
 
     private final JwtProperties properties;
     private final SecretKey key;
@@ -29,7 +30,7 @@ public class JwtService {
 
     public JwtService(JwtProperties properties, Clock clock) {
         this.properties = properties;
-        this.key = Keys.hmacShaKeyFor(Decoders.BASE64.decode(properties.secret()));
+        this.key = signingKey(properties.secret());
         this.clock = clock;
     }
 
@@ -64,6 +65,22 @@ public class JwtService {
         } catch (JwtException | IllegalArgumentException ex) {
             return Optional.empty();
         }
+    }
+
+    private static SecretKey signingKey(String secret) {
+        if (secret == null || secret.isBlank()) {
+            throw new IllegalStateException("JWT_SECRET não definido. Copie .env.example para .env e gere um segredo.");
+        }
+        byte[] bytes;
+        try {
+            bytes = Decoders.BASE64.decode(secret);
+        } catch (RuntimeException ex) {
+            throw new IllegalStateException("JWT_SECRET deve estar em Base64. Gere com: openssl rand -base64 48", ex);
+        }
+        if (bytes.length < MIN_SECRET_BYTES) {
+            throw new IllegalStateException("JWT_SECRET precisa ter pelo menos 256 bits. Gere com: openssl rand -base64 48");
+        }
+        return Keys.hmacShaKeyFor(bytes);
     }
 
     public record IssuedToken(String value, Instant expiresAt) {
