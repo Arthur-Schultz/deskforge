@@ -114,7 +114,8 @@ Por padrão o pagamento é simulado. Para usar o Stripe em modo de teste:
 2. Instale o [Stripe CLI](https://docs.stripe.com/stripe-cli) e encaminhe os webhooks para a API:
    ```bash
    stripe login
-   stripe listen --forward-to localhost:8080/api/payments/stripe/webhook
+   stripe listen --forward-to localhost:8080/api/payments/stripe/webhook \
+     --events checkout.session.completed,checkout.session.expired,checkout.session.async_payment_succeeded,checkout.session.async_payment_failed
    ```
 3. No `.env`, preencha:
    ```
