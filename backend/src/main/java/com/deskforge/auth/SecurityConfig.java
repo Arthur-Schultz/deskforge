@@ -29,7 +29,8 @@ public class SecurityConfig {
     };
 
     private static final String[] PUBLIC_POST = {
-            "/api/auth/register", "/api/auth/login", "/api/contact",
+            "/api/auth/register", "/api/auth/login", "/api/auth/password/forgot", "/api/auth/password/reset",
+            "/api/contact",
             "/api/privacy/requests", "/api/privacy/consents", "/api/payments/stripe/webhook"
     };
 

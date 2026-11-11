@@ -1,8 +1,10 @@
 package com.deskforge.auth;
 
 import com.deskforge.auth.dto.AuthResponse;
+import com.deskforge.auth.dto.ForgotPasswordRequest;
 import com.deskforge.auth.dto.LoginRequest;
 import com.deskforge.auth.dto.RegisterRequest;
+import com.deskforge.auth.dto.ResetPasswordRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -19,9 +21,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final AuthService authService;
+    private final PasswordResetService passwordResetService;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, PasswordResetService passwordResetService) {
         this.authService = authService;
+        this.passwordResetService = passwordResetService;
     }
 
     @PostMapping("/register")
@@ -35,5 +39,19 @@ public class AuthController {
     @Operation(summary = "Autentica e devolve um token JWT")
     public AuthResponse login(@Valid @RequestBody LoginRequest request) {
         return authService.login(request);
+    }
+
+    @PostMapping("/password/forgot")
+    @ResponseStatus(HttpStatus.ACCEPTED)
+    @Operation(summary = "Envia um link de redefinição de senha, sem revelar se o e-mail está cadastrado")
+    public void forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        passwordResetService.requestReset(request.email());
+    }
+
+    @PostMapping("/password/reset")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Operation(summary = "Define uma nova senha usando o link recebido por e-mail")
+    public void resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        passwordResetService.resetPassword(request.token(), request.newPassword());
     }
 }
