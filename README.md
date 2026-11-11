@@ -13,6 +13,8 @@ E-commerce full stack de periféricos e acessórios de setup, com **Spring Boot 
 - **Reserva com prazo.** Um job agendado cancela os pedidos não pagos em 30 minutos e libera os produtos.
 - **Direito de arrependimento (art. 49 do CDC).** O cliente cancela pela própria conta em até 7 dias após a entrega, com estorno solicitado ao gateway.
 - **Pagamento com Stripe Checkout.** O cliente paga na página hospedada do Stripe, então dados de cartão nunca passam pela loja. A confirmação chega por webhook com assinatura verificada e é idempotente: eventos repetidos são ignorados. Se um pagamento chegar depois de o pedido expirar, ele é estornado automaticamente. A interface `PaymentGateway` também tem uma implementação simulada, usada por padrão.
+- **E-mails transacionais confiáveis.** Pagamento confirmado, pedido enviado, pedido cancelado, redefinição e alteração de senha. Cada e-mail é gravado numa tabela de saída (*transactional outbox*) na mesma transação que muda o pedido, então nunca se perde nem sai duplicado, mesmo com webhooks repetidos. Um job envia em segundo plano com novas tentativas (1, 5, 15 e 60 minutos) e apaga o conteúdo depois da entrega. Templates em Thymeleaf, com versão HTML e texto puro.
+- **Recuperação de senha segura.** O link vale 30 minutos e só uma vez, o banco guarda apenas o hash SHA-256 do token, a resposta não revela se o e-mail tem conta e o token vai no fragmento da URL (`#token=`), que não chega a logs de servidor nem ao cabeçalho `Referer`.
 - **Banco com privilégios mínimos.** As migrations rodam com o usuário dono do schema, e a aplicação conecta com um usuário que só tem `SELECT`, `INSERT`, `UPDATE` e `DELETE`. Regras de negócio críticas também são garantidas por `CHECK` no próprio PostgreSQL.
 - **LGPD de verdade.** Coleta mínima, consentimento granular de cookies com registro de prova, exportação dos dados em JSON, exclusão de conta por anonimização (os pedidos ficam guardados por obrigação fiscal) e formulário de direitos do titular com protocolo e prazo.
 - **Marco Civil da Internet.** Guarda de registros de acesso (IP, data e hora) por 6 meses e expurgo automático depois desse prazo.
@@ -29,17 +31,19 @@ E-commerce full stack de periféricos e acessórios de setup, com **Spring Boot 
 | --- | --- |
 | ![Painel admin](docs/screenshots/admin.png) | ![Política de privacidade](docs/screenshots/privacy.png) |
 
-<p align="center"><img src="docs/screenshots/mobile.png" alt="Versão mobile" width="260"></p>
+| E-mail de pagamento confirmado | Versão mobile |
+| --- | --- |
+| ![E-mail de pagamento confirmado no Mailpit](docs/screenshots/email.png) | <img src="docs/screenshots/mobile.png" alt="Versão mobile" width="260"> |
 
 ## Stack
 
 | Camada | Tecnologias |
 | --- | --- |
-| API | Java 21, Spring Boot 4.1, Spring Security 7, Spring Data JPA (Hibernate 7), Bean Validation, Flyway, springdoc-openapi, JJWT, Stripe Java |
+| API | Java 21, Spring Boot 4.1, Spring Security 7, Spring Data JPA (Hibernate 7), Bean Validation, Flyway, springdoc-openapi, JJWT, Stripe Java, Spring Mail, Thymeleaf |
 | Banco | PostgreSQL 17 |
 | Web | React 19, TypeScript, Vite, React Router, TanStack Query, Tailwind CSS 4 |
-| Testes | JUnit 5, AssertJ, Spring Security Test, Testcontainers |
-| Infra | Docker Compose, Nginx, GitHub Actions |
+| Testes | JUnit 5, AssertJ, Spring Security Test, Testcontainers, GreenMail |
+| Infra | Docker Compose, Nginx, Mailpit, GitHub Actions |
 
 ## Arquitetura
 
@@ -47,10 +51,11 @@ E-commerce full stack de periféricos e acessórios de setup, com **Spring Boot 
 deskforge/
 ├── backend/                     API REST (Spring Boot)
 │   └── src/main/java/com/deskforge/
-│       ├── auth/                JWT, filtro de autenticação, regras de acesso
+│       ├── auth/                JWT, regras de acesso e recuperação de senha
 │       ├── catalog/             Produtos, categorias, busca com Specifications
 │       ├── order/               Checkout, máquina de estados, expiração de pedidos
 │       ├── payment/             PaymentGateway, Stripe Checkout, webhooks e modo simulado
+│       ├── notification/        Outbox de e-mails, templates Thymeleaf e envio com novas tentativas
 │       ├── privacy/             Consentimento, direitos do titular, exportação e anonimização
 │       ├── support/             SAC com protocolo e prazo de resposta
 │       ├── audit/               Registros de acesso (Marco Civil) e retenção
@@ -61,7 +66,7 @@ deskforge/
 ├── infra/
 │   ├── postgres/                Script que cria o usuário restrito da aplicação
 │   └── pgadmin/                 Conexão pré-configurada do pgAdmin
-└── docker-compose.yml           PostgreSQL + API + Web (+ pgAdmin opcional)
+└── docker-compose.yml           PostgreSQL + API + Web + Mailpit (+ pgAdmin opcional)
 ```
 
 Regras de negócio ficam nas entidades (`Order`, `Product`), e os serviços orquestram transações. Todos os erros seguem o formato **Problem Details (RFC 9457)**, com mensagens em português e erros por campo.
@@ -85,11 +90,12 @@ docker compose up --build
 - Loja: http://localhost:3000
 - API: http://localhost:8080
 - Documentação da API (Swagger): http://localhost:8080/swagger-ui.html
+- Caixa de e-mails de teste (Mailpit): http://localhost:8025
 
 ### Em modo de desenvolvimento
 
 ```bash
-docker compose up -d db
+docker compose up -d db mailpit
 
 cd backend
 ./mvnw spring-boot:run        # lê o ../.env automaticamente
@@ -127,6 +133,32 @@ Por padrão o pagamento é simulado. Para usar o Stripe em modo de teste:
 
 A API se recusa a iniciar com uma chave `sk_live_`, para que o projeto nunca cobre de verdade.
 
+## E-mails
+
+Em desenvolvimento, nenhum e-mail sai para a internet: todos são capturados pelo [Mailpit](https://mailpit.axllent.org), que mostra a caixa de entrada em http://localhost:8025. Faça uma compra ou clique em *Esqueci minha senha* na tela de login e o e-mail aparece lá em poucos segundos.
+
+| E-mail | Quando é enviado |
+| --- | --- |
+| Pagamento confirmado | O pagamento é aprovado (webhook do Stripe ou modo simulado) |
+| Pedido enviado | O admin marca o pedido como enviado |
+| Pedido cancelado | Cancelamento pelo cliente, pela loja ou por falta de pagamento, informando se houve estorno |
+| Redefinir senha | O cliente pede um link em `/esqueci-senha` (no máximo um por minuto) |
+| Senha alterada | A senha é trocada pelo link, como alerta de segurança |
+
+Para enviar de verdade, aponte para qualquer SMTP no `.env` (por exemplo, Brevo, Amazon SES ou Resend):
+
+```
+MAIL_HOST=smtp.seu-provedor.com
+MAIL_PORT=587
+MAIL_USERNAME=...
+MAIL_PASSWORD=...
+MAIL_SMTP_AUTH=true
+MAIL_SMTP_STARTTLS=true
+MAIL_FROM=DeskForge <nao-responda@seu-dominio.com>
+```
+
+Se o servidor de e-mail cair, nada se perde: as mensagens ficam pendentes na tabela `email_outbox` e são reenviadas automaticamente. Depois de 5 tentativas, ficam marcadas como `FAILED` para análise.
+
 ## Banco de dados
 
 | Usuário | Usado por | Permissões |
@@ -153,7 +185,7 @@ cd backend
 mvn verify
 ```
 
-São 15 testes unitários (domínio de pedidos, regras de frete, JWT) e 12 de integração com PostgreSQL real via Testcontainers, cobrindo segurança, compra concorrente, devolução de estoque e webhooks do Stripe (assinatura, idempotência, expiração e estorno automático). É preciso ter o Docker rodando. O GitHub Actions executa os testes da API e o lint e o build do front a cada push.
+São 18 testes unitários (domínio de pedidos, regras de frete, JWT, política de novas tentativas de e-mail) e 21 de integração com PostgreSQL real via Testcontainers e um servidor SMTP em memória (GreenMail), cobrindo segurança, compra concorrente, devolução de estoque, webhooks do Stripe (assinatura, idempotência, expiração e estorno automático), envio de e-mails sem duplicidade e o fluxo completo de recuperação de senha. É preciso ter o Docker rodando. O GitHub Actions executa os testes da API e o lint e o build do front a cada push.
 
 ## Mapa de conformidade
 
@@ -176,8 +208,8 @@ São 15 testes unitários (domínio de pedidos, regras de frete, JWT) e 12 de in
 
 - [x] **v1:** catálogo, carrinho, checkout com controle de concorrência, JWT, painel admin, páginas legais e LGPD
 - [x] **v2:** Stripe Checkout em modo de teste com webhooks idempotentes
-- [ ] **v3:** e-mails transacionais (confirmação, recuperação de senha) assíncronos com templates Thymeleaf
-- [ ] **v4:** refresh token em cookie HttpOnly e limitação de tentativas de login
+- [x] **v3:** e-mails transacionais assíncronos com outbox, templates Thymeleaf e recuperação de senha
+- [ ] **v4:** refresh token em cookie HttpOnly, encerramento das sessões ao trocar a senha e limitação de tentativas de login
 - [ ] **v5:** deploy público e observabilidade
 
 ## Licença
