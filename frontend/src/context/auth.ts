@@ -14,7 +14,8 @@ export interface AuthState {
   ready: boolean
   login: (email: string, password: string) => Promise<User>
   register: (input: RegisterInput) => Promise<User>
-  logout: () => void
+  logout: () => Promise<void>
+  logoutEverywhere: () => Promise<void>
   setUser: (user: User) => void
 }
 

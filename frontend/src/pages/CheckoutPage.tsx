@@ -1,6 +1,7 @@
 import { useMutation } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router'
+import { DemoNotice } from '../components/DemoNotice'
 import { Checkbox, Field, FormAlert } from '../components/Field'
 import { OrderSummary } from '../components/OrderSummary'
 import { PageHeader } from '../components/PageHeader'
@@ -9,7 +10,7 @@ import { useCart } from '../context/cart'
 import { ApiError, api } from '../lib/api'
 import { formatPrice, maskZip } from '../lib/format'
 import { summarize } from '../lib/pricing'
-import { useStoreInfo } from '../lib/queries'
+import { useIsSharedDemoAccount, useStoreInfo } from '../lib/queries'
 import type { Address, Order } from '../lib/types'
 
 const states = 'AC AL AP AM BA CE DF ES GO MA MT MS MG PA PB PR PE PI RJ RN RS RO RR SC SP SE TO'.split(' ')
@@ -20,6 +21,7 @@ export function CheckoutPage() {
   const { data: store } = useStoreInfo()
   const navigate = useNavigate()
   const totals = summarize(subtotal, store)
+  const sharedAccount = useIsSharedDemoAccount(user?.email)
 
   const [address, setAddress] = useState<Address>({
     recipientName: user?.fullName ?? '',
@@ -66,6 +68,14 @@ export function CheckoutPage() {
       <PageHeader title="Entrega e pagamento" />
       <form onSubmit={submit} noValidate className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-[minmax(0,1fr)_24rem]">
         <section aria-labelledby="address-title">
+          {sharedAccount ? (
+            <div className="mb-6">
+              <DemoNotice>
+                Você está na conta de demonstração, que todos os visitantes usam. Não digite dados reais: invente um
+                endereço ou <Link to="/criar-conta" className="font-semibold underline underline-offset-2">crie sua própria conta</Link>.
+              </DemoNotice>
+            </div>
+          ) : null}
           <h2 id="address-title" className="font-wide text-lg font-bold">
             Endereço de entrega
           </h2>

@@ -1,5 +1,6 @@
+import type { AuthResponse } from './types'
+
 const BASE_URL = import.meta.env.VITE_API_URL ?? ''
-const TOKEN_KEY = 'deskforge.token'
 
 export class ApiError extends Error {
   readonly status: number
@@ -12,34 +13,72 @@ export class ApiError extends Error {
   }
 }
 
+let accessToken: string | null = null
+let pendingRefresh: Promise<AuthResponse | null> | null = null
+
 export const tokenStore = {
-  get: (): string | null => sessionStorage.getItem(TOKEN_KEY),
-  set: (token: string) => sessionStorage.setItem(TOKEN_KEY, token),
-  clear: () => sessionStorage.removeItem(TOKEN_KEY),
+  get: (): string | null => accessToken,
+  set: (token: string) => {
+    accessToken = token
+  },
+  clear: () => {
+    accessToken = null
+  },
+}
+
+export function refreshSession(): Promise<AuthResponse | null> {
+  pendingRefresh ??= fetch(`${BASE_URL}/api/auth/refresh`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: { Accept: 'application/json' },
+  })
+    .then(async (response) => {
+      if (!response.ok) {
+        tokenStore.clear()
+        return null
+      }
+      const session = (await response.json()) as AuthResponse
+      tokenStore.set(session.accessToken)
+      return session
+    })
+    .catch(() => null)
+    .finally(() => {
+      pendingRefresh = null
+    })
+  return pendingRefresh
 }
 
 type Method = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
 
-async function request<T>(method: Method, path: string, body?: unknown): Promise<T> {
+async function send(method: Method, path: string, body?: unknown): Promise<Response> {
   const headers: Record<string, string> = { Accept: 'application/json' }
   const token = tokenStore.get()
   if (token) headers.Authorization = `Bearer ${token}`
   if (body !== undefined) headers['Content-Type'] = 'application/json'
-
-  let response: Response
   try {
-    response = await fetch(`${BASE_URL}${path}`, {
+    return await fetch(`${BASE_URL}${path}`, {
       method,
       headers,
+      credentials: 'include',
       body: body === undefined ? undefined : JSON.stringify(body),
     })
   } catch {
     throw new ApiError(0, 'Não foi possível conectar à loja. Verifique sua conexão e tente novamente.')
   }
+}
 
-  if (response.status === 401 && token) {
-    tokenStore.clear()
-    window.dispatchEvent(new Event('deskforge:session-expired'))
+async function request<T>(method: Method, path: string, body?: unknown): Promise<T> {
+  const hadToken = tokenStore.get() !== null
+  let response = await send(method, path, body)
+
+  if (response.status === 401 && hadToken && !path.startsWith('/api/auth/')) {
+    const session = await refreshSession()
+    if (session) {
+      window.dispatchEvent(new CustomEvent('deskforge:session-refreshed', { detail: session.user }))
+      response = await send(method, path, body)
+    } else {
+      window.dispatchEvent(new Event('deskforge:session-expired'))
+    }
   }
 
   if (!response.ok) {

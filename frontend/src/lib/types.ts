@@ -149,6 +149,8 @@ export interface StoreInfo {
   approximateTaxRate: number
   demoMode: boolean
   paymentProvider: 'simulated' | 'stripe'
+  publicDemo: boolean
+  sharedDemoAccounts: string[]
 }
 
 export interface Protocol {

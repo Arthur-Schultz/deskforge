@@ -1,18 +1,21 @@
 import { useMutation } from '@tanstack/react-query'
-import { Download } from 'lucide-react'
+import { Download, LogOut } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
+import { DemoNotice } from '../../components/DemoNotice'
 import { FormAlert } from '../../components/Field'
 import { PageHeader } from '../../components/PageHeader'
 import { useAuth } from '../../context/auth'
 import { api } from '../../lib/api'
+import { useIsSharedDemoAccount } from '../../lib/queries'
 import { formatDate } from '../../lib/format'
 import type { User } from '../../lib/types'
 
 export function AccountPage() {
-  const { user, setUser, logout } = useAuth()
+  const { user, setUser, logout, logoutEverywhere } = useAuth()
   const navigate = useNavigate()
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const sharedAccount = useIsSharedDemoAccount(user?.email)
 
   const consent = useMutation({
     mutationFn: (marketingConsent: boolean) => api.patch<User>('/api/me/consents', { marketingConsent }),
@@ -32,11 +35,19 @@ export function AccountPage() {
     },
   })
 
+  const endSessions = useMutation({
+    mutationFn: logoutEverywhere,
+    onSuccess: () => {
+      navigate('/entrar', { replace: true, state: { notice: 'Você saiu de todos os dispositivos.' } })
+      void logout()
+    },
+  })
+
   const remove = useMutation({
     mutationFn: () => api.delete<void>('/api/me'),
     onSuccess: () => {
-      logout()
       navigate('/', { replace: true })
+      void logout()
     },
   })
 
@@ -46,6 +57,12 @@ export function AccountPage() {
     <>
       <PageHeader title="Minha conta" />
       <div className="mx-auto max-w-3xl space-y-12 px-4 sm:px-6">
+        {sharedAccount ? (
+          <DemoNotice>
+            Esta é a conta de demonstração compartilhada. Para testar a exclusão da conta e o encerramento das sessões,{' '}
+            <Link to="/criar-conta" className="font-semibold underline underline-offset-2">crie sua própria conta</Link>.
+          </DemoNotice>
+        ) : null}
         <section aria-labelledby="profile-title">
           <h2 id="profile-title" className="font-wide text-lg font-bold">
             Dados da conta
@@ -101,6 +118,23 @@ export function AccountPage() {
           </div>
         </section>
 
+        <section aria-labelledby="sessions-title" className="border-t border-line pt-8">
+          <h2 id="sessions-title" className="font-wide text-lg font-bold">
+            Sessões
+          </h2>
+          <p className="mt-2 text-sm leading-relaxed text-slate">
+            Você continua conectado neste navegador por até 14 dias sem usar a loja. Se entrou em um computador que não é
+            seu ou acha que alguém usou sua conta, encerre todas as sessões. Trocar a senha também encerra todas.
+          </p>
+          <button type="button" className="btn btn-secondary mt-4" onClick={() => endSessions.mutate()} disabled={sharedAccount || endSessions.isPending}>
+            <LogOut className="size-4" aria-hidden />
+            {endSessions.isPending ? 'Encerrando…' : 'Sair de todos os dispositivos'}
+          </button>
+          <div className="mt-3">
+            <FormAlert message={endSessions.error?.message} />
+          </div>
+        </section>
+
         <section aria-labelledby="delete-title" className="border-t border-line pt-8">
           <h2 id="delete-title" className="font-wide text-lg font-bold">
             Excluir conta
@@ -120,7 +154,7 @@ export function AccountPage() {
               </button>
             </div>
           ) : (
-            <button type="button" className="btn btn-secondary mt-4 border-danger text-danger hover:bg-danger hover:text-white" onClick={() => setConfirmDelete(true)}>
+            <button type="button" className="btn btn-secondary mt-4 border-danger text-danger hover:bg-danger hover:text-white" onClick={() => setConfirmDelete(true)} disabled={sharedAccount}>
               Excluir conta
             </button>
           )}

@@ -17,3 +17,8 @@ export function useCategories() {
     staleTime: Infinity,
   })
 }
+
+export function useIsSharedDemoAccount(email?: string | null) {
+  const { data: store } = useStoreInfo()
+  return Boolean(email && store?.publicDemo && store.sharedDemoAccounts.includes(email))
+}

@@ -19,10 +19,10 @@ export function CookiesPage() {
         </thead>
         <tbody>
           <tr>
-            <td>deskforge.token</td>
+            <td>df_session</td>
             <td>Essencial</td>
-            <td>Manter você conectado</td>
-            <td>Até fechar o navegador</td>
+            <td>Manter você conectado. Fica inacessível a scripts da página (HttpOnly) e só é enviado para a própria loja</td>
+            <td>14 dias sem uso, ou até você sair</td>
           </tr>
           <tr>
             <td>deskforge.cart</td>
