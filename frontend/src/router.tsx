@@ -4,11 +4,13 @@ import { RequireAuth } from './components/RequireAuth'
 import { CartPage } from './pages/CartPage'
 import { CatalogPage } from './pages/CatalogPage'
 import { CheckoutPage } from './pages/CheckoutPage'
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
 import { HomePage } from './pages/HomePage'
 import { LoginPage } from './pages/LoginPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { ProductPage } from './pages/ProductPage'
 import { RegisterPage } from './pages/RegisterPage'
+import { ResetPasswordPage } from './pages/ResetPasswordPage'
 import { AccountPage } from './pages/account/AccountPage'
 import { OrderDetailPage } from './pages/account/OrderDetailPage'
 import { OrdersPage } from './pages/account/OrdersPage'
@@ -36,6 +38,8 @@ export const router = createBrowserRouter([
       { path: 'checkout', element: <RequireAuth><CheckoutPage /></RequireAuth> },
       { path: 'entrar', element: <LoginPage /> },
       { path: 'criar-conta', element: <RegisterPage /> },
+      { path: 'esqueci-senha', element: <ForgotPasswordPage /> },
+      { path: 'redefinir-senha', element: <ResetPasswordPage /> },
       { path: 'conta', element: <RequireAuth><AccountPage /></RequireAuth> },
       { path: 'conta/pedidos', element: <RequireAuth><OrdersPage /></RequireAuth> },
       { path: 'conta/pedidos/:id', element: <RequireAuth><OrderDetailPage /></RequireAuth> },
