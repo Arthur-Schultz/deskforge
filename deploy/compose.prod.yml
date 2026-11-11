@@ -1,0 +1,123 @@
+name: deskforge
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  caddy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    environment:
+      DOMAIN: ${DOMAIN:?Defina DOMAIN no deploy/.env}
+      ACME_EMAIL: ${ACME_EMAIL:?Defina ACME_EMAIL no deploy/.env}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - web
+    logging: *logging
+
+  web:
+    image: ghcr.io/${GHCR_OWNER:-arthur-schultz}/deskforge-web:${DESKFORGE_VERSION:-latest}
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    logging: *logging
+
+  api:
+    image: ghcr.io/${GHCR_OWNER:-arthur-schultz}/deskforge-api:${DESKFORGE_VERSION:-latest}
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-deskforge}
+      DATABASE_USERNAME: ${DATABASE_USERNAME:-deskforge_app}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:?Defina DATABASE_PASSWORD no deploy/.env}
+      DATABASE_MIGRATION_USERNAME: ${POSTGRES_USER:-deskforge}
+      DATABASE_MIGRATION_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no deploy/.env}
+      JWT_SECRET: ${JWT_SECRET:?Defina JWT_SECRET no deploy/.env}
+      CORS_ALLOWED_ORIGINS: https://${DOMAIN}
+      FRONTEND_URL: https://${DOMAIN}
+      COOKIE_SECURE: "true"
+      PUBLIC_DEMO: ${PUBLIC_DEMO:-true}
+      PAYMENT_PROVIDER: ${PAYMENT_PROVIDER:-simulated}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      MAIL_HOST: ${MAIL_HOST:?Defina MAIL_HOST no deploy/.env}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_SMTP_AUTH: ${MAIL_SMTP_AUTH:-true}
+      MAIL_SMTP_STARTTLS: ${MAIL_SMTP_STARTTLS:-true}
+      MAIL_FROM: ${MAIL_FROM:?Defina MAIL_FROM no deploy/.env}
+      MAIL_SUPPRESSED_DOMAINS: ${MAIL_SUPPRESSED_DOMAINS:-deskforge.dev,example.com,test.com}
+      LOGGING_STRUCTURED_FORMAT_CONSOLE: ecs
+      JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=70
+    depends_on:
+      db:
+        condition: service_healthy
+    logging: *logging
+
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-deskforge}
+      POSTGRES_USER: ${POSTGRES_USER:-deskforge}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no deploy/.env}
+      DATABASE_USERNAME: ${DATABASE_USERNAME:-deskforge_app}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD:?Defina DATABASE_PASSWORD no deploy/.env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ../infra/postgres:/docker-entrypoint-initdb.d:ro
+      - ./backups:/backups
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    logging: *logging
+
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    profiles: ["observability"]
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=30d
+    volumes:
+      - ../infra/prometheus:/etc/prometheus:ro
+      - prometheus-data:/prometheus
+    logging: *logging
+
+  grafana:
+    image: grafana/grafana:12.1.0
+    profiles: ["observability"]
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?Defina GRAFANA_ADMIN_PASSWORD no deploy/.env}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/deskforge-overview.json
+    volumes:
+      - ../infra/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../infra/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "127.0.0.1:3001:3000"
+    logging: *logging
+
+volumes:
+  pgdata:
+  caddy-data:
+  caddy-config:
+  prometheus-data:
+  grafana-data:
