@@ -38,19 +38,23 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
-@SpringBootTest(properties = {
-        "deskforge.payment.provider=stripe",
-        "deskforge.payment.stripe.secret-key=sk_test_integration",
-        "deskforge.payment.stripe.webhook-secret=" + StripeWebhookIT.WEBHOOK_SECRET
-})
+@SpringBootTest(properties = "deskforge.payment.provider=stripe")
 class StripeWebhookIT extends PostgresIntegrationTest {
 
-    static final String WEBHOOK_SECRET = "whsec_integrationTestSecret0123456789abcdef";
+    private static final String WEBHOOK_SECRET = "whsec_" + randomToken();
+
+    @DynamicPropertySource
+    static void stripeProperties(DynamicPropertyRegistry registry) {
+        registry.add("deskforge.payment.stripe.secret-key", () -> "sk_test_" + randomToken());
+        registry.add("deskforge.payment.stripe.webhook-secret", () -> WEBHOOK_SECRET);
+    }
 
     @MockitoBean
     private PaymentGateway paymentGateway;
@@ -175,6 +179,10 @@ class StripeWebhookIT extends PostgresIntegrationTest {
         mac.init(new SecretKeySpec(WEBHOOK_SECRET.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
         byte[] digest = mac.doFinal((timestamp + "." + payload).getBytes(StandardCharsets.UTF_8));
         return "t=" + timestamp + ",v1=" + HexFormat.of().formatHex(digest);
+    }
+
+    private static String randomToken() {
+        return UUID.randomUUID().toString().replace("-", "");
     }
 
     private record Placed(UUID orderId, Long productId) {
