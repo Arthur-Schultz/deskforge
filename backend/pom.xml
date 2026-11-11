@@ -22,6 +22,7 @@
         <jjwt.version>0.13.0</jjwt.version>
         <springdoc.version>3.2.0</springdoc.version>
         <stripe.version>34.1.0</stripe.version>
+        <greenmail.version>2.1.8</greenmail.version>
     </properties>
 
     <dependencies>
@@ -48,6 +49,14 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.thymeleaf</groupId>
+            <artifactId>thymeleaf-spring6</artifactId>
         </dependency>
         <dependency>
             <groupId>org.flywaydb</groupId>
@@ -109,6 +118,12 @@
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers-junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.icegreen</groupId>
+            <artifactId>greenmail-junit5</artifactId>
+            <version>${greenmail.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

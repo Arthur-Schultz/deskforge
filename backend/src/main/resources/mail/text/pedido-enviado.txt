@@ -1,0 +1,16 @@
+Oi, [(${firstName})].
+
+O pedido [(${orderNumber})] saiu para entrega.
+
+[# th:each="line : ${lines}"]- [(${line.name})] x [(${line.quantity})]: [(${line.total})]
+[/]
+Total: [(${total})]
+
+Entrega:
+[# th:each="part : ${address}"][(${part})]
+[/]
+Acompanhe o pedido: [(${orderUrl})]
+
+--
+[(${store.tradeName})] · [(${store.supportEmail})]
+[# th:if="${store.demoMode}"]Loja de demonstração: nenhum produto é enviado e nenhuma cobrança real é feita.[/]

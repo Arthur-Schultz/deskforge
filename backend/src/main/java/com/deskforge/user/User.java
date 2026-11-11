@@ -70,6 +70,10 @@ public class User {
         this.anonymizedAt = now;
     }
 
+    public void changePassword(String newPasswordHash) {
+        this.passwordHash = newPasswordHash;
+    }
+
     public void updateMarketingConsent(boolean marketingConsent) {
         this.marketingConsent = marketingConsent;
     }
@@ -84,6 +88,11 @@ public class User {
 
     public String getFullName() {
         return fullName;
+    }
+
+    public String getFirstName() {
+        int space = fullName.indexOf(' ');
+        return space < 0 ? fullName : fullName.substring(0, space);
     }
 
     public String getEmail() {

@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{html/layout :: email(preheader=|Recebemos o pagamento do pedido ${orderNumber}. Agora é com a gente.|, content=~{::content})}">
+<body>
+<th:block th:fragment="content">
+    <h1 style="margin:0 0 16px;font-size:24px;line-height:1.25;">Pagamento confirmado</h1>
+    <p style="margin:0 0 12px;">Oi, <span th:text="${firstName}">Cliente</span>.</p>
+    <p style="margin:0 0 12px;">Recebemos o pagamento do pedido <strong th:text="${orderNumber}">DF-1000</strong><th:block th:if="${paidAt}"> em <span th:text="${paidAt}">data</span></th:block>. Agora vamos separar os itens e avisamos por e-mail quando ele for enviado.</p>
+    <th:block th:replace="~{html/components :: summary}"/>
+    <th:block th:replace="~{html/components :: address}"/>
+    <th:block th:replace="~{html/components :: button(label='Acompanhar pedido', href=${orderUrl})}"/>
+    <p style="margin:0;font-size:14px;color:#596070;">Você pode desistir da compra em até <span th:text="${store.withdrawalDays}">7</span> dias depois de receber o pedido, direto na página dele.</p>
+</th:block>
+</body>
+</html>

@@ -2,6 +2,9 @@ spring:
   flyway:
     user: test
     password: test
+  mail:
+    host: localhost
+    port: 3025
 
 deskforge:
   jobs:

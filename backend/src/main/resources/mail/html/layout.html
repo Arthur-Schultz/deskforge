@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="pt-BR" xmlns:th="http://www.thymeleaf.org" th:fragment="email(preheader, content)">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light">
+    <title th:text="${subject}">DeskForge</title>
+</head>
+<body style="margin:0;padding:0;background-color:#e8eaed;font-family:Archivo,'Segoe UI',Arial,sans-serif;color:#1c1f24;">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;" th:text="${preheader}">Resumo</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#e8eaed;">
+    <tr>
+        <td align="center" style="padding:32px 16px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;">
+                <tr>
+                    <td style="background-color:#1c1f24;border-radius:12px 12px 0 0;padding:22px 32px;">
+                        <a th:href="${siteUrl}" style="color:#ffffff;text-decoration:none;font-size:20px;font-weight:800;letter-spacing:0.08em;">DESK<span style="color:#8fa3ff;">FORGE</span></a>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="height:4px;background-color:#2747e0;font-size:0;line-height:0;">&nbsp;</td>
+                </tr>
+                <tr>
+                    <td style="background-color:#ffffff;border-radius:0 0 12px 12px;padding:32px;font-size:16px;line-height:1.6;">
+                        <th:block th:replace="${content}"/>
+                    </td>
+                </tr>
+                <tr>
+                    <td style="padding:24px 8px;font-size:12px;line-height:1.6;color:#596070;text-align:center;">
+                        <p style="margin:0 0 8px;">Você recebeu esta mensagem porque ela é necessária para a sua conta ou para os seus pedidos na <span th:text="${store.tradeName}">DeskForge</span>. Dúvidas? Escreva para <a th:href="'mailto:' + ${store.supportEmail}" th:text="${store.supportEmail}" style="color:#2747e0;">sac@deskforge.dev</a>.</p>
+                        <p style="margin:0 0 8px;"><span th:text="${store.legalName}">Razão social</span> · CNPJ <span th:text="${store.cnpj}">00.000.000/0000-00</span><br><span th:text="${store.address}">Endereço</span></p>
+                        <p style="margin:0;" th:if="${store.demoMode}">Loja de demonstração: nenhum produto é enviado e nenhuma cobrança real é feita.</p>
+                    </td>
+                </tr>
+            </table>
+        </td>
+    </tr>
+</table>
+</body>
+</html>

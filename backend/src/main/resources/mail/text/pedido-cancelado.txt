@@ -1,0 +1,16 @@
+Oi, [(${firstName})].
+
+O pedido [(${orderNumber})] foi cancelado.
+[# th:if="${cancelReason}"]Motivo: [(${cancelReason})]
+[/]
+[# th:if="${refunded}"]Como o pagamento já tinha sido aprovado, pedimos o estorno de [(${total})]. O prazo para o valor aparecer depende do seu banco ou da operadora do cartão.[/][# th:unless="${refunded}"]Nenhuma cobrança foi feita.[/]
+
+[# th:each="line : ${lines}"]- [(${line.name})] x [(${line.quantity})]: [(${line.total})]
+[/]
+Total: [(${total})]
+
+Ver pedido: [(${orderUrl})]
+
+--
+[(${store.tradeName})] · [(${store.supportEmail})]
+[# th:if="${store.demoMode}"]Loja de demonstração: nenhum produto é enviado e nenhuma cobrança real é feita.[/]

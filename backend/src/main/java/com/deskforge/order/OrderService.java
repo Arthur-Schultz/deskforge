@@ -28,6 +28,7 @@ import com.deskforge.user.User;
 import com.deskforge.user.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
@@ -47,16 +48,19 @@ public class OrderService {
     private final PaymentGateway paymentGateway;
     private final PricingPolicy pricing;
     private final StoreProperties store;
+    private final ApplicationEventPublisher events;
     private final Clock clock;
 
     public OrderService(OrderRepository orders, ProductRepository products, UserRepository users,
-                        PaymentGateway paymentGateway, PricingPolicy pricing, StoreProperties store, Clock clock) {
+                        PaymentGateway paymentGateway, PricingPolicy pricing, StoreProperties store,
+                        ApplicationEventPublisher events, Clock clock) {
         this.orders = orders;
         this.products = products;
         this.users = users;
         this.paymentGateway = paymentGateway;
         this.pricing = pricing;
         this.store = store;
+        this.events = events;
         this.clock = clock;
     }
 
@@ -97,6 +101,7 @@ public class OrderService {
         PaymentResult result = paymentGateway.charge(order);
         if (result.approved()) {
             order.markPaid(result.reference(), now);
+            events.publishEvent(new OrderStatusChanged(order, OrderStatus.AWAITING_PAYMENT));
         } else {
             order.attachPaymentSession(result.reference(), result.expiresAt());
         }
@@ -109,6 +114,7 @@ public class OrderService {
         Instant now = clock.instant();
         if (order.confirmExternalPayment(paymentReference, now)) {
             log.info("Payment confirmed for order {}", order.getNumber());
+            events.publishEvent(new OrderStatusChanged(order, OrderStatus.AWAITING_PAYMENT));
         } else if (order.getStatus() == OrderStatus.CANCELED) {
             log.warn("Payment received for canceled order {}, refunding", order.getNumber());
             paymentGateway.refund(paymentReference, order.getNumber());
@@ -168,7 +174,9 @@ public class OrderService {
         if (target == OrderStatus.CANCELED) {
             cancel(order, "Cancelado pela loja", now, true);
         } else {
+            OrderStatus previous = order.getStatus();
             order.advanceTo(target, now);
+            events.publishEvent(new OrderStatusChanged(order, previous));
         }
         return toResponse(order, now);
     }
@@ -192,10 +200,12 @@ public class OrderService {
         }
         List<Long> productIds = order.getItems().stream().map(item -> item.getProduct().getId()).toList();
         products.findAllByIdForUpdate(productIds);
+        OrderStatus previous = order.getStatus();
         boolean requiresRefund = order.cancel(reason, now);
         if (requiresRefund) {
             paymentGateway.refund(order.getPaymentReference(), order.getNumber());
         }
+        events.publishEvent(new OrderStatusChanged(order, previous));
     }
 
     private Order ownedOrder(UUID customerId, UUID orderId) {

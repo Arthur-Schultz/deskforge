@@ -1,0 +1,9 @@
+Oi, [(${firstName})].
+
+A senha da sua conta na [(${store.tradeName})] foi alterada agora há pouco.
+
+Se foi você, não precisa fazer nada. Se não foi, redefina a senha agora e fale com o SAC:
+[(${forgotUrl})]
+
+--
+[(${store.tradeName})] · [(${store.supportEmail})]

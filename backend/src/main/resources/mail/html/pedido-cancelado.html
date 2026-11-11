@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{html/layout :: email(preheader=|O pedido ${orderNumber} foi cancelado.|, content=~{::content})}">
+<body>
+<th:block th:fragment="content">
+    <h1 style="margin:0 0 16px;font-size:24px;line-height:1.25;">Pedido cancelado</h1>
+    <p style="margin:0 0 12px;">Oi, <span th:text="${firstName}">Cliente</span>.</p>
+    <p style="margin:0 0 12px;">O pedido <strong th:text="${orderNumber}">DF-1000</strong> foi cancelado.</p>
+    <p style="margin:0 0 12px;" th:if="${cancelReason}"><strong>Motivo:</strong> <span th:text="${cancelReason}">Motivo</span></p>
+    <p style="margin:0 0 12px;" th:if="${refunded}">Como o pagamento já tinha sido aprovado, pedimos o estorno de <strong th:text="${total}">R$ 0,00</strong>. O prazo para o valor aparecer depende do seu banco ou da operadora do cartão.</p>
+    <p style="margin:0 0 12px;" th:unless="${refunded}">Nenhuma cobrança foi feita.</p>
+    <th:block th:replace="~{html/components :: summary}"/>
+    <th:block th:replace="~{html/components :: button(label='Ver pedido', href=${orderUrl})}"/>
+</th:block>
+</body>
+</html>

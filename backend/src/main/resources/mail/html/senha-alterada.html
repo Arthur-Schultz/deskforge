@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{html/layout :: email(preheader='A senha da sua conta acabou de ser alterada.', content=~{::content})}">
+<body>
+<th:block th:fragment="content">
+    <h1 style="margin:0 0 16px;font-size:24px;line-height:1.25;">Senha alterada</h1>
+    <p style="margin:0 0 12px;">Oi, <span th:text="${firstName}">Cliente</span>.</p>
+    <p style="margin:0 0 12px;">A senha da sua conta na <span th:text="${store.tradeName}">DeskForge</span> foi alterada agora há pouco.</p>
+    <p style="margin:0 0 12px;">Se foi você, não precisa fazer nada. Se não foi, redefina a senha agora e fale com o SAC.</p>
+    <th:block th:replace="~{html/components :: button(label='Redefinir senha', href=${forgotUrl})}"/>
+</th:block>
+</body>
+</html>

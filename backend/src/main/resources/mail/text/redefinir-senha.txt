@@ -1,0 +1,10 @@
+Oi, [(${firstName})].
+
+Recebemos um pedido para redefinir a senha da sua conta. Abra o link abaixo para criar uma nova senha. Ele vale por [(${validityMinutes})] minutos e só pode ser usado uma vez.
+
+[(${resetUrl})]
+
+Não foi você? Pode ignorar este e-mail: sua senha continua a mesma.
+
+--
+[(${store.tradeName})] · [(${store.supportEmail})]

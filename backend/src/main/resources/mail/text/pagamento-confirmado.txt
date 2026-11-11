@@ -1,0 +1,20 @@
+Oi, [(${firstName})].
+
+Recebemos o pagamento do pedido [(${orderNumber})][# th:if="${paidAt}"] em [(${paidAt})][/]. Agora vamos separar os itens e avisamos por e-mail quando ele for enviado.
+
+[# th:each="line : ${lines}"]- [(${line.name})] x [(${line.quantity})]: [(${line.total})]
+[/]
+Subtotal: [(${subtotal})]
+Frete: [(${shipping})]
+Total: [(${total})]
+
+Entrega:
+[# th:each="part : ${address}"][(${part})]
+[/]
+Acompanhe o pedido: [(${orderUrl})]
+
+Você pode desistir da compra em até [(${store.withdrawalDays})] dias depois de receber o pedido, direto na página dele.
+
+--
+[(${store.tradeName})] · [(${store.supportEmail})]
+[# th:if="${store.demoMode}"]Loja de demonstração: nenhum produto é enviado e nenhuma cobrança real é feita.[/]

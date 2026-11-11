@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+<th:block th:fragment="summary">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;border-top:1px solid #c9cdd3;font-size:15px;">
+        <tr th:each="line : ${lines}">
+            <td style="padding:10px 0;border-bottom:1px solid #e8eaed;">
+                <span th:text="${line.name}">Produto</span>
+                <span style="color:#596070;" th:text="'× ' + ${line.quantity}">× 1</span>
+            </td>
+            <td align="right" style="padding:10px 0;border-bottom:1px solid #e8eaed;white-space:nowrap;" th:text="${line.total}">R$ 0,00</td>
+        </tr>
+        <tr>
+            <td style="padding:10px 0 2px;color:#596070;">Subtotal</td>
+            <td align="right" style="padding:10px 0 2px;color:#596070;" th:text="${subtotal}">R$ 0,00</td>
+        </tr>
+        <tr>
+            <td style="padding:2px 0;color:#596070;">Frete</td>
+            <td align="right" style="padding:2px 0;color:#596070;" th:text="${shipping}">R$ 0,00</td>
+        </tr>
+        <tr>
+            <td style="padding:8px 0;font-weight:700;">Total</td>
+            <td align="right" style="padding:8px 0;font-weight:700;" th:text="${total}">R$ 0,00</td>
+        </tr>
+    </table>
+</th:block>
+<th:block th:fragment="address">
+    <p style="margin:0 0 4px;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#596070;">Entrega</p>
+    <p style="margin:0 0 24px;font-size:15px;"><th:block th:each="part, it : ${address}"><span th:text="${part}">Linha</span><br th:unless="${it.last}"></th:block></p>
+</th:block>
+<th:block th:fragment="button(label, href)">
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 24px;">
+        <tr>
+            <td style="background-color:#2747e0;border-radius:8px;">
+                <a th:href="${href}" th:text="${label}" style="display:inline-block;padding:12px 22px;color:#ffffff;font-weight:700;text-decoration:none;">Ação</a>
+            </td>
+        </tr>
+    </table>
+</th:block>
+</body>
+</html>

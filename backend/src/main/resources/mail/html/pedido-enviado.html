@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{html/layout :: email(preheader=|O pedido ${orderNumber} saiu para entrega.|, content=~{::content})}">
+<body>
+<th:block th:fragment="content">
+    <h1 style="margin:0 0 16px;font-size:24px;line-height:1.25;">Seu pedido foi enviado</h1>
+    <p style="margin:0 0 12px;">Oi, <span th:text="${firstName}">Cliente</span>.</p>
+    <p style="margin:0 0 12px;">O pedido <strong th:text="${orderNumber}">DF-1000</strong> saiu para entrega no endereço abaixo.</p>
+    <th:block th:replace="~{html/components :: summary}"/>
+    <th:block th:replace="~{html/components :: address}"/>
+    <th:block th:replace="~{html/components :: button(label='Acompanhar pedido', href=${orderUrl})}"/>
+</th:block>
+</body>
+</html>

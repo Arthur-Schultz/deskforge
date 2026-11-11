@@ -23,6 +23,7 @@ import com.deskforge.catalog.ArtKind;
 import com.deskforge.catalog.CategoryRepository;
 import com.deskforge.catalog.Product;
 import com.deskforge.catalog.ProductRepository;
+import com.deskforge.notification.EmailMessageRepository;
 import com.deskforge.order.OrderRepository;
 import com.deskforge.order.OrderService;
 import com.deskforge.order.OrderStatus;
@@ -80,6 +81,9 @@ class StripeWebhookIT extends PostgresIntegrationTest {
     @Autowired
     private ProcessedWebhookEventRepository processedEvents;
 
+    @Autowired
+    private EmailMessageRepository emails;
+
     private MockMvc mvc;
 
     @BeforeEach
@@ -101,6 +105,7 @@ class StripeWebhookIT extends PostgresIntegrationTest {
         assertThat(order.getStatus()).isEqualTo(OrderStatus.PAID);
         assertThat(order.getPaymentReference()).isEqualTo("pi_test_" + placed.orderId());
         assertThat(processedEvents.count()).isPositive();
+        assertThat(emails.findByDedupKey("order:" + placed.orderId() + ":PAID")).isPresent();
         verify(paymentGateway, never()).refund(anyString(), anyString());
     }
 
