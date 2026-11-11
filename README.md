@@ -15,6 +15,10 @@ E-commerce full stack de periféricos e acessórios de setup, com **Spring Boot 
 - **Pagamento com Stripe Checkout.** O cliente paga na página hospedada do Stripe, então dados de cartão nunca passam pela loja. A confirmação chega por webhook com assinatura verificada e é idempotente: eventos repetidos são ignorados. Se um pagamento chegar depois de o pedido expirar, ele é estornado automaticamente. A interface `PaymentGateway` também tem uma implementação simulada, usada por padrão.
 - **E-mails transacionais confiáveis.** Pagamento confirmado, pedido enviado, pedido cancelado, redefinição e alteração de senha. Cada e-mail é gravado numa tabela de saída (*transactional outbox*) na mesma transação que muda o pedido, então nunca se perde nem sai duplicado, mesmo com webhooks repetidos. Um job envia em segundo plano com novas tentativas (1, 5, 15 e 60 minutos) e apaga o conteúdo depois da entrega. Templates em Thymeleaf, com versão HTML e texto puro.
 - **Recuperação de senha segura.** O link vale 30 minutos e só uma vez, o banco guarda apenas o hash SHA-256 do token, a resposta não revela se o e-mail tem conta e o token vai no fragmento da URL (`#token=`), que não chega a logs de servidor nem ao cabeçalho `Referer`.
+- **Sessões seguras.** O token de acesso (JWT) dura 15 minutos e fica só na memória da página, longe do `localStorage`. A sessão vive num cookie `HttpOnly`, `Secure` e `SameSite=Strict`, com refresh token opaco guardado como hash e girado a cada uso. Se um token já girado aparecer de novo (sinal de roubo), toda a sessão é derrubada. Trocar a senha, excluir a conta ou clicar em *Sair de todos os dispositivos* encerra todas as sessões.
+- **Limite de tentativas.** Login (5 erros por conta e 30 por IP a cada 15 minutos), cadastro e recuperação de senha respondem `429` com `Retry-After` quando passam do limite. O nginx sobrescreve o `X-Forwarded-For`, para que ninguém fuja do limite forjando o IP.
+- **Pronta para ficar no ar.** As imagens são publicadas no GitHub Container Registry a cada push. Um Compose de produção sobe tudo atrás do Caddy com HTTPS automático, e o deploy na VPS acontece sozinho pelo GitHub Actions quando o servidor está configurado. No modo *demo pública*, as contas de demonstração compartilhadas não podem ser sequestradas nem excluídas, o painel admin vira somente leitura e os dados pessoais dos visitantes aparecem mascarados.
+- **Observabilidade.** Métricas Prometheus numa porta interna (HTTP, JVM, pool do banco e métricas de negócio: faturamento, pedidos por status, fila de e-mails, logins bloqueados, reuso de sessão), dashboard do Grafana provisionado, 7 regras de alerta, logs em JSON (ECS) em produção e um `X-Request-Id` que liga cada resposta às linhas de log da requisição.
 - **Banco com privilégios mínimos.** As migrations rodam com o usuário dono do schema, e a aplicação conecta com um usuário que só tem `SELECT`, `INSERT`, `UPDATE` e `DELETE`. Regras de negócio críticas também são garantidas por `CHECK` no próprio PostgreSQL.
 - **LGPD de verdade.** Coleta mínima, consentimento granular de cookies com registro de prova, exportação dos dados em JSON, exclusão de conta por anonimização (os pedidos ficam guardados por obrigação fiscal) e formulário de direitos do titular com protocolo e prazo.
 - **Marco Civil da Internet.** Guarda de registros de acesso (IP, data e hora) por 6 meses e expurgo automático depois desse prazo.
@@ -35,15 +39,17 @@ E-commerce full stack de periféricos e acessórios de setup, com **Spring Boot 
 | --- | --- |
 | ![E-mail de pagamento confirmado no Mailpit](docs/screenshots/email.png) | <img src="docs/screenshots/mobile.png" alt="Versão mobile" width="260"> |
 
+![Dashboard do Grafana com métricas de negócio e da API](docs/screenshots/grafana.png)
+
 ## Stack
 
 | Camada | Tecnologias |
 | --- | --- |
-| API | Java 21, Spring Boot 4.1, Spring Security 7, Spring Data JPA (Hibernate 7), Bean Validation, Flyway, springdoc-openapi, JJWT, Stripe Java, Spring Mail, Thymeleaf |
+| API | Java 21, Spring Boot 4.1, Spring Security 7, Spring Data JPA (Hibernate 7), Bean Validation, Flyway, springdoc-openapi, JJWT, Stripe Java, Spring Mail, Thymeleaf, Micrometer |
 | Banco | PostgreSQL 17 |
 | Web | React 19, TypeScript, Vite, React Router, TanStack Query, Tailwind CSS 4 |
 | Testes | JUnit 5, AssertJ, Spring Security Test, Testcontainers, GreenMail |
-| Infra | Docker Compose, Nginx, Mailpit, GitHub Actions |
+| Infra | Docker Compose, Nginx, Caddy, Mailpit, Prometheus, Grafana, GitHub Actions, GitHub Container Registry |
 
 ## Arquitetura
 
@@ -51,7 +57,7 @@ E-commerce full stack de periféricos e acessórios de setup, com **Spring Boot 
 deskforge/
 ├── backend/                     API REST (Spring Boot)
 │   └── src/main/java/com/deskforge/
-│       ├── auth/                JWT, regras de acesso e recuperação de senha
+│       ├── auth/                JWT, sessões com refresh token, limites de tentativa e recuperação de senha
 │       ├── catalog/             Produtos, categorias, busca com Specifications
 │       ├── order/               Checkout, máquina de estados, expiração de pedidos
 │       ├── payment/             PaymentGateway, Stripe Checkout, webhooks e modo simulado
@@ -61,12 +67,16 @@ deskforge/
 │       ├── audit/               Registros de acesso (Marco Civil) e retenção
 │       ├── admin/               Indicadores do painel
 │       ├── store/               Dados do fornecedor, frete e tributos aproximados
-│       └── shared/              Erros RFC 9457 (Problem Details), paginação, configuração
+│       ├── demo/                Proteções da demo pública (contas compartilhadas, painel somente leitura, máscara de dados)
+│       └── shared/              Erros RFC 9457, limitador de tentativas, request id, tokens seguros
 ├── frontend/                    Loja e painel (React)
 ├── infra/
 │   ├── postgres/                Script que cria o usuário restrito da aplicação
-│   └── pgadmin/                 Conexão pré-configurada do pgAdmin
-└── docker-compose.yml           PostgreSQL + API + Web + Mailpit (+ pgAdmin opcional)
+│   ├── pgadmin/                 Conexão pré-configurada do pgAdmin
+│   ├── prometheus/              Coleta de métricas e regras de alerta
+│   └── grafana/                 Fonte de dados e dashboard provisionados
+├── deploy/                      Compose de produção, Caddyfile (HTTPS) e modelo de .env
+└── docker-compose.yml           PostgreSQL + API + Web + Mailpit (+ pgAdmin, Prometheus e Grafana opcionais)
 ```
 
 Regras de negócio ficam nas entidades (`Order`, `Product`), e os serviços orquestram transações. Todos os erros seguem o formato **Problem Details (RFC 9457)**, com mensagens em português e erros por campo.
@@ -91,6 +101,15 @@ docker compose up --build
 - API: http://localhost:8080
 - Documentação da API (Swagger): http://localhost:8080/swagger-ui.html
 - Caixa de e-mails de teste (Mailpit): http://localhost:8025
+- Métricas e saúde da API (porta interna): http://localhost:8081/actuator/prometheus
+
+Para subir também o Prometheus e o Grafana:
+
+```bash
+docker compose --profile observability up -d
+```
+
+O Grafana abre em http://localhost:3001 (usuário `admin`, senha do `GRAFANA_ADMIN_PASSWORD`) já com o dashboard *DeskForge: visão geral*. O Prometheus fica em http://localhost:9090, com as regras de alerta em *Alerts*.
 
 ### Em modo de desenvolvimento
 
@@ -104,6 +123,8 @@ cd ../frontend
 npm install
 npm run dev                   # http://localhost:5173
 ```
+
+O cookie de sessão é `Secure`. Chrome, Edge e Firefox aceitam esse tipo de cookie em `http://localhost`; no Safari, use `COOKIE_SECURE=false` no `.env` só para desenvolvimento.
 
 ### Contas de demonstração
 
@@ -159,6 +180,55 @@ MAIL_FROM=DeskForge <nao-responda@seu-dominio.com>
 
 Se o servidor de e-mail cair, nada se perde: as mensagens ficam pendentes na tabela `email_outbox` e são reenviadas automaticamente. Depois de 5 tentativas, ficam marcadas como `FAILED` para análise.
 
+## Sessões e limites
+
+| Peça | Como funciona |
+| --- | --- |
+| Token de acesso | JWT assinado (HS256), 15 minutos, enviado no cabeçalho `Authorization` e mantido só em memória |
+| Sessão | Refresh token aleatório de 256 bits no cookie `df_session` (`HttpOnly`, `Secure`, `SameSite=Strict`, `Path=/api/auth`), válido por 14 dias. O banco guarda só o hash SHA-256 |
+| Renovação | Quando a API responde `401`, o site chama `POST /api/auth/refresh` uma única vez, recebe um novo par de tokens e repete a requisição |
+| Rotação e reuso | Cada refresh revoga o token usado. Se ele aparecer de novo depois de 30 segundos, todos os tokens daquela sessão são revogados e o evento vira métrica e alerta |
+| Encerramento | `POST /api/auth/logout` (este navegador), `POST /api/auth/logout-all` (todos), troca de senha e exclusão de conta |
+| Limites | Login: 5 erros por conta e 30 por IP em 15 min. Cadastro: 10 por IP por hora. Esqueci a senha: 5 por IP em 15 min. Redefinir senha: 10 por IP em 15 min |
+
+Os limites ficam em memória, o que basta para uma instância. Com várias réplicas, o próximo passo seria guardá-los no Redis.
+
+## Observabilidade
+
+| O quê | Onde |
+| --- | --- |
+| Saúde (liveness e readiness) | `:8081/actuator/health`, usada pelo `HEALTHCHECK` da imagem |
+| Métricas Prometheus | `:8081/actuator/prometheus`, numa porta que não é publicada para a internet |
+| Métricas de negócio | `deskforge_orders_revenue_BRL_total`, `deskforge_orders_transitions_total`, `deskforge_emails_pending`, `deskforge_emails_sent_total`, `deskforge_emails_failures_total`, `deskforge_auth_logins_total`, `deskforge_auth_refresh_reuse_total` |
+| Alertas | API fora do ar, mais de 5% de erros 5xx, p95 acima de 1 s, fila de e-mails parada, e-mail que esgotou as tentativas, reuso de refresh token e excesso de logins bloqueados (`infra/prometheus/alerts.yml`) |
+| Logs | Texto legível no desenvolvimento e JSON no formato ECS em produção (`LOGGING_STRUCTURED_FORMAT_CONSOLE=ecs`), sempre com o `requestId` |
+| Rastreio de requisição | Cabeçalho `X-Request-Id` gerado pelo nginx (ou aceito do cliente, se for válido), devolvido na resposta e gravado em cada linha de log |
+
+## Deploy
+
+A pasta `deploy/` sobe a loja em qualquer servidor Linux com Docker, como uma VPS da Hetzner, DigitalOcean ou Oracle Cloud, com HTTPS automático pelo Caddy (Let's Encrypt).
+
+1. Aponte um domínio (registro `A`) para o IP do servidor e libere as portas 80 e 443.
+2. No servidor:
+   ```bash
+   git clone https://github.com/Arthur-Schultz/deskforge.git ~/deskforge
+   cd ~/deskforge/deploy
+   cp .env.example .env          # preencha domínio, senhas, JWT_SECRET e SMTP
+   docker compose -f compose.prod.yml up -d
+   ```
+3. Opcional: `docker compose -f compose.prod.yml --profile observability up -d` sobe Prometheus e Grafana. O Grafana fica só em `127.0.0.1:3001`; acesse com `ssh -L 3001:localhost:3001 usuario@servidor`.
+
+**Imagens:** a cada push na `main` com CI verde, o GitHub Actions publica `ghcr.io/arthur-schultz/deskforge-api` e `deskforge-web` com as tags `latest` e o SHA do commit. Na primeira publicação, deixe os dois pacotes públicos em *GitHub → Packages → Package settings*, ou rode `docker login ghcr.io` no servidor.
+
+**Deploy automático:** crie no repositório os secrets `DEPLOY_HOST`, `DEPLOY_USER` e `DEPLOY_SSH_KEY`. A partir daí, cada push na `main` atualiza o servidor com a versão exata do commit. Sem esses secrets, o job apenas avisa e termina.
+
+**Demo pública:** com `PUBLIC_DEMO=true` (padrão em produção), as contas `cliente@deskforge.dev` e `admin@deskforge.dev` continuam abertas para qualquer visitante, mas não podem trocar a senha, encerrar as sessões de todos nem ser excluídas. O painel admin fica somente leitura e mostra nomes, e-mails e endereços dos clientes mascarados. O site avisa no checkout para não usar dados reais na conta compartilhada. E-mails para os domínios de `MAIL_SUPPRESSED_DOMAINS` (por padrão `deskforge.dev`, `example.com` e `test.com`) nunca são enviados.
+
+**Backup do banco:**
+```bash
+docker compose -f compose.prod.yml exec db sh -c 'pg_dump -U "$POSTGRES_USER" -Fc "$POSTGRES_DB"' > backups/deskforge-$(date +%F).dump
+```
+
 ## Banco de dados
 
 | Usuário | Usado por | Permissões |
@@ -185,7 +255,7 @@ cd backend
 mvn verify
 ```
 
-São 18 testes unitários (domínio de pedidos, regras de frete, JWT, política de novas tentativas de e-mail) e 21 de integração com PostgreSQL real via Testcontainers e um servidor SMTP em memória (GreenMail), cobrindo segurança, compra concorrente, devolução de estoque, webhooks do Stripe (assinatura, idempotência, expiração e estorno automático), envio de e-mails sem duplicidade e o fluxo completo de recuperação de senha. É preciso ter o Docker rodando. O GitHub Actions executa os testes da API e o lint e o build do front a cada push.
+São 24 testes unitários (domínio de pedidos, regras de frete, JWT, novas tentativas de e-mail, limitador de tentativas, refresh tokens) e 34 de integração com PostgreSQL real via Testcontainers e um servidor SMTP em memória (GreenMail). Eles cobrem segurança, compra concorrente, devolução de estoque, webhooks do Stripe (assinatura, idempotência, expiração e estorno automático), envio de e-mails sem duplicidade, recuperação de senha, cookies de sessão com rotação e detecção de reuso, bloqueio por tentativas, as proteções da demo pública e as métricas na porta de gerenciamento. É preciso ter o Docker rodando. O GitHub Actions executa os testes da API e o lint e o build do front a cada push.
 
 ## Mapa de conformidade
 
@@ -209,8 +279,8 @@ São 18 testes unitários (domínio de pedidos, regras de frete, JWT, política 
 - [x] **v1:** catálogo, carrinho, checkout com controle de concorrência, JWT, painel admin, páginas legais e LGPD
 - [x] **v2:** Stripe Checkout em modo de teste com webhooks idempotentes
 - [x] **v3:** e-mails transacionais assíncronos com outbox, templates Thymeleaf e recuperação de senha
-- [ ] **v4:** refresh token em cookie HttpOnly, encerramento das sessões ao trocar a senha e limitação de tentativas de login
-- [ ] **v5:** deploy público e observabilidade
+- [x] **v4:** refresh token em cookie HttpOnly com rotação, encerramento das sessões ao trocar a senha e limitação de tentativas
+- [x] **v5:** imagens no GHCR, deploy com HTTPS automático, modo demo pública, métricas, dashboard, alertas e logs estruturados
 
 ## Licença
 
