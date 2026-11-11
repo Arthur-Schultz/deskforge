@@ -25,11 +25,13 @@ public class SecurityConfig {
 
     private static final String[] PUBLIC_GET = {
             "/api/products/**", "/api/categories/**", "/api/store",
-            "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/actuator/health"
+            "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html",
+            "/actuator/health/**", "/actuator/health", "/actuator/info", "/actuator/prometheus"
     };
 
     private static final String[] PUBLIC_POST = {
-            "/api/auth/register", "/api/auth/login", "/api/auth/password/forgot", "/api/auth/password/reset",
+            "/api/auth/register", "/api/auth/login", "/api/auth/refresh", "/api/auth/logout",
+            "/api/auth/password/forgot", "/api/auth/password/reset",
             "/api/contact",
             "/api/privacy/requests", "/api/privacy/consents", "/api/payments/stripe/webhook"
     };
@@ -72,6 +74,7 @@ public class SecurityConfig {
         config.setAllowedOrigins(origins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("Authorization", "Content-Type"));
+        config.setAllowCredentials(true);
         config.setMaxAge(3600L);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/**", config);

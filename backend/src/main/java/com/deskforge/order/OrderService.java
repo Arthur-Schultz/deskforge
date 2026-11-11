@@ -88,7 +88,9 @@ public class OrderService {
 
         BigDecimal shipping = pricing.shippingFor(order.getSubtotal());
         order.applyCharges(shipping, pricing.approximateTaxesFor(order.getSubtotal().add(shipping)));
-        return toResponse(orders.save(order), now);
+        Order saved = orders.save(order);
+        events.publishEvent(new OrderStatusChanged(saved, null));
+        return toResponse(saved, now);
     }
 
     @Transactional

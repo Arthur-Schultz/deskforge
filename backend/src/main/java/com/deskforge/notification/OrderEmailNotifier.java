@@ -39,7 +39,7 @@ public class OrderEmailNotifier {
                     "Seu pedido " + order.getNumber() + " foi enviado", Map.of());
             case CANCELED -> send(order, EmailTemplate.ORDER_CANCELED,
                     "Pedido " + order.getNumber() + " cancelado",
-                    Map.of("refunded", event.previousStatus().isPaid()));
+                    Map.of("refunded", event.previousStatus() != null && event.previousStatus().isPaid()));
             case AWAITING_PAYMENT, DELIVERED -> {
             }
         }

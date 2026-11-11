@@ -5,6 +5,8 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
@@ -23,13 +25,21 @@ public class EmailDispatcher {
     private final JavaMailSender mailSender;
     private final EmailProperties properties;
     private final Clock clock;
+    private final MeterRegistry registry;
 
     public EmailDispatcher(EmailMessageRepository messages, JavaMailSender mailSender, EmailProperties properties,
-                           Clock clock) {
+                           Clock clock, MeterRegistry registry) {
         this.messages = messages;
         this.mailSender = mailSender;
         this.properties = properties;
         this.clock = clock;
+        this.registry = registry;
+        Gauge.builder("deskforge.emails.pending", () -> messages.countByStatus(EmailStatus.PENDING))
+                .description("E-mails na fila aguardando envio")
+                .register(registry);
+        for (EmailTemplate template : EmailTemplate.values()) {
+            registry.counter("deskforge.emails.sent", "template", template.name());
+        }
     }
 
     @Transactional
@@ -41,9 +51,12 @@ public class EmailDispatcher {
             try {
                 mailSender.send(toMime(message));
                 message.markSent(now);
+                registry.counter("deskforge.emails.sent", "template", message.getTemplate().name()).increment();
                 sent++;
             } catch (MessagingException | RuntimeException ex) {
                 message.registerFailure(ex.getMessage(), now);
+                registry.counter("deskforge.emails.failures", "template", message.getTemplate().name(),
+                        "final", String.valueOf(message.getStatus() == EmailStatus.FAILED)).increment();
                 log.warn("Could not send e-mail {} ({} of {} attempts): {}", message.getDedupKey(),
                         message.getAttempts(), EmailMessage.MAX_ATTEMPTS, ex.getMessage());
             }

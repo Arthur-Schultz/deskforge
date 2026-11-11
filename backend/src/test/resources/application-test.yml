@@ -12,3 +12,9 @@ deskforge:
   security:
     jwt:
       secret: dGVzdC1zZWNyZXQtdGhhdC1pcy1sb25nLWVub3VnaC1mb3ItaHMyNTYtc2lnbmluZw==
+    rate-limits:
+      login-per-account: { max-attempts: 1000, window: PT1M }
+      login-per-ip: { max-attempts: 1000, window: PT1M }
+      register-per-ip: { max-attempts: 1000, window: PT1M }
+      forgot-password-per-ip: { max-attempts: 1000, window: PT1M }
+      reset-password-per-ip: { max-attempts: 1000, window: PT1M }

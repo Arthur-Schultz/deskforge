@@ -38,6 +38,11 @@ spring:
     deserialization:
       fail-on-null-for-primitives: false
 
+logging:
+  pattern:
+    correlation: "[%X{requestId:-}] "
+  include-application-name: false
+
 server:
   port: ${PORT:8080}
   forward-headers-strategy: framework
@@ -45,14 +50,24 @@ server:
     include-stacktrace: never
 
 management:
+  server:
+    port: ${MANAGEMENT_PORT:8081}
   endpoints:
     web:
       exposure:
-        include: health
+        include: health,info,prometheus
   endpoint:
     health:
       probes:
         enabled: true
+  metrics:
+    tags:
+      application: deskforge-api
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+      slo:
+        http.server.requests: 100ms,300ms,1s
   health:
     mail:
       enabled: false
@@ -69,8 +84,29 @@ deskforge:
   security:
     jwt:
       secret: ${JWT_SECRET:}
-      expiration: PT8H
+      expiration: PT15M
       issuer: deskforge-api
+    session:
+      refresh-token-validity: P14D
+      rotation-grace: PT30S
+      cookie-name: df_session
+      cookie-secure: ${COOKIE_SECURE:true}
+    rate-limits:
+      login-per-account:
+        max-attempts: 5
+        window: PT15M
+      login-per-ip:
+        max-attempts: 30
+        window: PT15M
+      register-per-ip:
+        max-attempts: 10
+        window: PT1H
+      forgot-password-per-ip:
+        max-attempts: 5
+        window: PT15M
+      reset-password-per-ip:
+        max-attempts: 10
+        window: PT15M
     password-reset:
       validity: PT30M
       request-cooldown: PT1M
@@ -85,6 +121,12 @@ deskforge:
     batch-size: 20
     dispatch-interval: PT5S
     zone: America/Sao_Paulo
+    suppressed-domains: ${MAIL_SUPPRESSED_DOMAINS:}
+  demo:
+    public-demo: ${PUBLIC_DEMO:false}
+    shared-accounts:
+      - cliente@deskforge.dev
+      - admin@deskforge.dev
   jobs:
     enabled: true
     order-expiration-interval: PT1M

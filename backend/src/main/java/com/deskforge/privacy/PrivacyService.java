@@ -6,6 +6,8 @@ import java.time.Instant;
 import java.util.UUID;
 
 import com.deskforge.auth.dto.UserResponse;
+import com.deskforge.auth.RevokeReason;
+import com.deskforge.auth.SessionService;
 import com.deskforge.notification.EmailOutbox;
 import com.deskforge.order.OrderService;
 import com.deskforge.privacy.dto.AccountDataExport;
@@ -35,11 +37,13 @@ public class PrivacyService {
     private final PasswordEncoder passwordEncoder;
     private final StoreProperties store;
     private final EmailOutbox emailOutbox;
+    private final SessionService sessions;
     private final Clock clock;
 
     public PrivacyService(CookieConsentRepository consents, DataSubjectRequestRepository requests,
                           UserRepository users, OrderService orderService, PasswordEncoder passwordEncoder,
-                          StoreProperties store, EmailOutbox emailOutbox, Clock clock) {
+                          StoreProperties store, EmailOutbox emailOutbox, SessionService sessions,
+                          Clock clock) {
         this.consents = consents;
         this.requests = requests;
         this.users = users;
@@ -47,6 +51,7 @@ public class PrivacyService {
         this.passwordEncoder = passwordEncoder;
         this.store = store;
         this.emailOutbox = emailOutbox;
+        this.sessions = sessions;
         this.clock = clock;
     }
 
@@ -92,6 +97,7 @@ public class PrivacyService {
         String originalEmail = user.getEmail();
         user.anonymize(passwordEncoder.encode(UUID.randomUUID().toString()), clock.instant());
         emailOutbox.forgetRecipient(originalEmail, user.getEmail());
+        sessions.endAll(userId, RevokeReason.ACCOUNT_DELETED);
     }
 
     private User user(UUID userId) {

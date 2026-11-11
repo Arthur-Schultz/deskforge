@@ -15,6 +15,8 @@ public interface EmailMessageRepository extends JpaRepository<EmailMessage, UUID
 
     boolean existsByDedupKey(String dedupKey);
 
+    long countByStatus(EmailStatus status);
+
     Optional<EmailMessage> findByDedupKey(String dedupKey);
 
     List<EmailMessage> findAllByRecipientOrderByCreatedAtAsc(String recipient);

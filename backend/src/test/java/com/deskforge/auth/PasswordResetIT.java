@@ -16,6 +16,7 @@ import com.deskforge.notification.EmailDispatcher;
 import com.deskforge.notification.EmailMessage;
 import com.deskforge.notification.EmailMessageRepository;
 import com.deskforge.notification.EmailTemplate;
+import com.deskforge.shared.security.SecureTokens;
 import com.deskforge.support.MailContent;
 import com.deskforge.support.PostgresIntegrationTest;
 import com.deskforge.user.User;
@@ -23,15 +24,18 @@ import com.deskforge.user.UserRepository;
 import com.icegreen.greenmail.junit5.GreenMailExtension;
 import com.icegreen.greenmail.util.ServerSetupTest;
 import jakarta.mail.Message;
+import jakarta.servlet.http.Cookie;
 import jakarta.mail.internet.MimeMessage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
@@ -83,10 +87,14 @@ class PasswordResetIT extends PostgresIntegrationTest {
         assertThat(resetEmail.getSubject()).isEqualTo("Redefina sua senha da DeskForge");
         String token = tokenFrom(MailContent.text(resetEmail));
         assertThat(tokens.findByTokenHash(token)).isEmpty();
-        assertThat(tokens.findByTokenHash(PasswordResetService.hash(token))).isPresent();
+        assertThat(tokens.findByTokenHash(SecureTokens.sha256(token))).isPresent();
+
+        String oldSession = sessionCookie(login(email, "Antiga123").andReturn());
 
         reset(token, "Nova12345").andExpect(status().isNoContent());
 
+        mvc.perform(post("/api/auth/refresh").cookie(new Cookie("df_session", oldSession)))
+                .andExpect(status().isUnauthorized());
         login(email, "Nova12345").andExpect(status().isOk());
         login(email, "Antiga123").andExpect(status().isUnauthorized());
 
@@ -152,6 +160,11 @@ class PasswordResetIT extends PostgresIntegrationTest {
         return mvc.perform(post("/api/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"email\":\"" + address + "\",\"password\":\"" + password + "\"}"));
+    }
+
+    private static String sessionCookie(MvcResult result) {
+        String header = result.getResponse().getHeader(HttpHeaders.SET_COOKIE);
+        return header.substring("df_session=".length(), header.indexOf(';'));
     }
 
     private static String tokenFrom(String body) {

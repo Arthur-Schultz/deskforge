@@ -2,6 +2,7 @@ package com.deskforge.order;
 
 import java.util.UUID;
 
+import com.deskforge.demo.DemoPolicy;
 import com.deskforge.order.dto.AdminOrderSummaryResponse;
 import com.deskforge.order.dto.OrderResponse;
 import com.deskforge.order.dto.OrderStatusUpdateRequest;
@@ -23,9 +24,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class AdminOrderController {
 
     private final OrderService orderService;
+    private final DemoPolicy demoPolicy;
 
-    public AdminOrderController(OrderService orderService) {
+    public AdminOrderController(OrderService orderService, DemoPolicy demoPolicy) {
         this.orderService = orderService;
+        this.demoPolicy = demoPolicy;
     }
 
     @GetMapping
@@ -33,18 +36,27 @@ public class AdminOrderController {
     public PageResponse<AdminOrderSummaryResponse> list(@RequestParam(required = false) OrderStatus status,
                                                         @RequestParam(defaultValue = "0") int page,
                                                         @RequestParam(defaultValue = "20") int size) {
-        return orderService.listForAdmin(status, page, size);
+        PageResponse<AdminOrderSummaryResponse> result = orderService.listForAdmin(status, page, size);
+        if (!demoPolicy.isPublicDemo()) {
+            return result;
+        }
+        return new PageResponse<>(result.content().stream().map(AdminOrderSummaryResponse::withMaskedCustomer).toList(),
+                result.page(), result.size(), result.totalElements(), result.totalPages());
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "Detalhes de qualquer pedido")
     public OrderResponse one(@PathVariable UUID id) {
-        return orderService.findForAdmin(id);
+        return protect(orderService.findForAdmin(id));
     }
 
     @PatchMapping("/{id}/status")
     @Operation(summary = "Avança o status do pedido respeitando a máquina de estados")
     public OrderResponse updateStatus(@PathVariable UUID id, @Valid @RequestBody OrderStatusUpdateRequest request) {
-        return orderService.updateStatus(id, request.status());
+        return protect(orderService.updateStatus(id, request.status()));
+    }
+
+    private OrderResponse protect(OrderResponse order) {
+        return demoPolicy.isPublicDemo() ? order.withMaskedPersonalData() : order;
     }
 }

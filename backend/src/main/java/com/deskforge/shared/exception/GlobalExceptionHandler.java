@@ -4,7 +4,9 @@ import java.net.URI;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import com.deskforge.demo.DemoRestrictionException;
 import com.deskforge.payment.PaymentProviderException;
+import com.deskforge.shared.ratelimit.TooManyRequestsException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.OptimisticLockingFailureException;
@@ -50,6 +52,18 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         log.error("Payment provider failure", ex);
         return problem(HttpStatus.BAD_GATEWAY, "payment-provider", "Falha no pagamento",
                 ex.getMessage() + ". Tente novamente em instantes.");
+    }
+
+    @ExceptionHandler(DemoRestrictionException.class)
+    public ProblemDetail handleDemoRestriction(DemoRestrictionException ex) {
+        return problem(HttpStatus.FORBIDDEN, "demo-restriction", "Indisponível na demonstração", ex.getMessage());
+    }
+
+    @ExceptionHandler(TooManyRequestsException.class)
+    public ResponseEntity<ProblemDetail> handleTooManyRequests(TooManyRequestsException ex) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header(HttpHeaders.RETRY_AFTER, String.valueOf(Math.max(1, ex.getRetryAfter().toSeconds())))
+                .body(problem(HttpStatus.TOO_MANY_REQUESTS, "too-many-requests", "Muitas tentativas", ex.getMessage()));
     }
 
     @ExceptionHandler(OptimisticLockingFailureException.class)

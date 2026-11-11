@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+import com.deskforge.demo.PersonalDataMask;
 import com.deskforge.order.Order;
 import com.deskforge.order.OrderStatus;
 
@@ -21,5 +22,11 @@ public record OrderResponse(UUID id, String number, OrderStatus status, List<Ord
                 AddressResponse.from(o.getShippingAddress()), o.getCancelReason(), o.getCreatedAt(), o.getPaidAt(),
                 o.getShippedAt(), o.getDeliveredAt(), o.getCanceledAt(), o.getExpiresAt(),
                 o.withdrawalDeadline(withdrawalDays), o.canBeCanceledByCustomer(now, withdrawalDays));
+    }
+
+    public OrderResponse withMaskedPersonalData() {
+        return new OrderResponse(id, number, status, items, subtotal, shippingCost, total, approximateTaxes,
+                shippingAddress.masked(), PersonalDataMask.hidden(cancelReason), createdAt, paidAt, shippedAt,
+                deliveredAt, canceledAt, expiresAt, withdrawalDeadline, cancelable);
     }
 }

@@ -1,6 +1,9 @@
 package com.deskforge.privacy;
 
+import com.deskforge.auth.AuthenticatedUser;
 import com.deskforge.auth.CurrentUser;
+import com.deskforge.auth.SessionCookies;
+import com.deskforge.demo.DemoPolicy;
 import com.deskforge.auth.dto.UserResponse;
 import com.deskforge.privacy.dto.AccountDataExport;
 import com.deskforge.privacy.dto.ConsentUpdateRequest;
@@ -23,9 +26,13 @@ import org.springframework.web.bind.annotation.RestController;
 public class AccountController {
 
     private final PrivacyService privacyService;
+    private final SessionCookies sessionCookies;
+    private final DemoPolicy demoPolicy;
 
-    public AccountController(PrivacyService privacyService) {
+    public AccountController(PrivacyService privacyService, SessionCookies sessionCookies, DemoPolicy demoPolicy) {
         this.privacyService = privacyService;
+        this.sessionCookies = sessionCookies;
+        this.demoPolicy = demoPolicy;
     }
 
     @GetMapping
@@ -49,9 +56,11 @@ public class AccountController {
     }
 
     @DeleteMapping
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    @Operation(summary = "Exclui a conta anonimizando os dados pessoais")
-    public void delete() {
-        privacyService.anonymize(CurrentUser.get().id());
+    @Operation(summary = "Exclui a conta anonimizando os dados pessoais e encerra todas as sessões")
+    public ResponseEntity<Void> delete() {
+        AuthenticatedUser user = CurrentUser.get();
+        demoPolicy.ensureAccountCanChange(user.email());
+        privacyService.anonymize(user.id());
+        return ResponseEntity.noContent().header(HttpHeaders.SET_COOKIE, sessionCookies.clear().toString()).build();
     }
 }
