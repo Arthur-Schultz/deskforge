@@ -34,6 +34,11 @@ export function PrivacyPage() {
             <td>Execução de contrato (art. 7º, V)</td>
           </tr>
           <tr>
+            <td>E-mail da conta</td>
+            <td>Avisar sobre seus pedidos (pagamento, envio e cancelamento) e sobre a segurança da conta (redefinição e alteração de senha)</td>
+            <td>Execução de contrato (art. 7º, V)</td>
+          </tr>
+          <tr>
             <td>Endereço de entrega</td>
             <td>Entregar o pedido e emitir nota fiscal</td>
             <td>Execução de contrato e obrigação legal (art. 7º, II e V)</td>
@@ -68,6 +73,7 @@ export function PrivacyPage() {
       <h2>Com quem compartilhamos</h2>
       <ul>
         <li>Processador de pagamentos, para confirmar e estornar pagamentos.</li>
+        <li>Serviço de envio de e-mails, para entregar os avisos sobre pedidos e sobre a conta.</li>
         <li>Transportadora, para entregar o pedido (somente nome e endereço).</li>
         <li>Autoridades públicas, quando houver obrigação legal ou ordem judicial.</li>
       </ul>
@@ -79,6 +85,10 @@ export function PrivacyPage() {
         <li>Pedidos e notas fiscais: 5 anos, pelo prazo da legislação tributária.</li>
         <li>Registros de acesso: 6 meses, conforme o Marco Civil da Internet, e depois são apagados automaticamente.</li>
         <li>Registros de consentimento de cookies: enquanto forem necessários para comprovar sua escolha.</li>
+        <li>
+          E-mails que enviamos: o conteúdo é apagado assim que a mensagem é entregue. Guardamos só o destinatário, o assunto
+          e a data, e o destinatário é removido se você excluir a conta.
+        </li>
       </ul>
 
       <h2>Seus direitos</h2>
